@@ -1,6 +1,5 @@
 use actix_web::dev::{ServiceFactory, ServiceRequest};
-use actix_web::Error;
-use paperclip::actix::App;
+use actix_web::{App, Error};
 
 pub trait RegisterModule<T>
 where

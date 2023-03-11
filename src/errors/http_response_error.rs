@@ -4,7 +4,6 @@ use actix_web::http::StatusCode;
 use actix_web::{error, HttpResponse};
 use derive_more::Display;
 use log::error;
-use paperclip::actix::api_v2_errors;
 use std::fmt::Display;
 
 #[derive(Debug, Copy, Clone, Display)]
@@ -20,16 +19,6 @@ pub enum HttpResponseErrorCode {
 }
 
 #[derive(Debug, Clone)]
-#[api_v2_errors(
-    code = 500,
-    description = "Internal server error",
-    schema = "ErrorDto",
-    code = 404,
-    description = "Not found",
-    schema = "ErrorDto",
-    code = 401,
-    description = "Unauthorized"
-)]
 pub struct HttpResponseError {
     pub error: HttpResponseErrorCode,
     pub message: Option<String>,
@@ -40,20 +29,26 @@ impl HttpResponseError {
         Self { error, message }
     }
 
-    pub fn internal_error(message: Option<String>) -> Self {
-        Self::new(HttpResponseErrorCode::InternalError, message)
+    pub fn internal_error<T: Into<String>>(message: Option<T>) -> Self {
+        Self::new(
+            HttpResponseErrorCode::InternalError,
+            message.map(|m| m.into()),
+        )
     }
 
-    pub fn bad_request(message: Option<String>) -> Self {
-        Self::new(HttpResponseErrorCode::BadRequest, message)
+    pub fn bad_request<T: Into<String>>(message: Option<T>) -> Self {
+        Self::new(HttpResponseErrorCode::BadRequest, message.map(|m| m.into()))
     }
 
-    pub fn not_found(message: Option<String>) -> Self {
-        Self::new(HttpResponseErrorCode::NotFound, message)
+    pub fn not_found<T: Into<String>>(message: Option<T>) -> Self {
+        Self::new(HttpResponseErrorCode::NotFound, message.map(|m| m.into()))
     }
 
-    pub fn unauthorized(message: Option<String>) -> Self {
-        Self::new(HttpResponseErrorCode::Unauthorized, message)
+    pub fn unauthorized<T: Into<String>>(message: Option<T>) -> Self {
+        Self::new(
+            HttpResponseErrorCode::Unauthorized,
+            message.map(|m| m.into()),
+        )
     }
 }
 
@@ -67,35 +62,35 @@ impl Display for HttpResponseError {
 }
 
 pub trait MapHttpResponseError<T> {
-    fn map_internal_error(self, message: Option<String>) -> Result<T, HttpResponseError>;
+    fn map_internal_error(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 
-    fn map_bad_request(self, message: Option<String>) -> Result<T, HttpResponseError>;
+    fn map_bad_request(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 
-    fn map_not_found(self, message: Option<String>) -> Result<T, HttpResponseError>;
+    fn map_not_found(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 }
 
 impl<T, E> MapHttpResponseError<T> for Result<T, E>
 where
     E: Display,
 {
-    fn map_internal_error(self, message: Option<String>) -> Result<T, HttpResponseError> {
+    fn map_internal_error(self, message: Option<&str>) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Internal server error: {}", e);
             HttpResponseError::internal_error(message).into()
         })
     }
 
-    fn map_bad_request(self, message: Option<String>) -> Result<T, HttpResponseError> {
+    fn map_bad_request(self, message: Option<&str>) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Bad request: {}", e);
             HttpResponseError::bad_request(message).into()
         })
     }
 
-    fn map_not_found(self, message: Option<String>) -> Result<T, HttpResponseError> {
+    fn map_not_found(self, message: Option<&str>) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Not found: {}", e);
-            HttpResponseError::new(HttpResponseErrorCode::NotFound, message).into()
+            HttpResponseError::not_found(message).into()
         })
     }
 }

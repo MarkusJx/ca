@@ -1,8 +1,7 @@
 use crate::register_module;
-use actix_web::Error;
+use actix_web::get;
+use actix_web::{HttpRequest, HttpResponse};
 use lazy_static::lazy_static;
-use paperclip::actix::web::{HttpRequest, HttpResponse};
-use paperclip::actix::{api_v2_operation, get};
 use std::sync::Arc;
 use utoipa_swagger_ui::Config;
 
@@ -10,7 +9,6 @@ lazy_static! {
     static ref CONFIG: Arc<Config<'static>> = Arc::new(Config::from("/api/spec/v1"));
 }
 
-#[api_v2_operation]
 #[get("/swagger-ui/{filename:.*}")]
 async fn get_swagger_ui(req: HttpRequest) -> HttpResponse {
     let file = req.path()[12..].to_string();

@@ -1,9 +1,12 @@
-use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Deserialize, Serialize, Apiv2Schema)]
+/// A certificate signing request
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct SigningRequest {
+    /// The client certificate
     pub cert: String,
+    /// The client name
     #[serde(rename = "clientName")]
     pub client_name: String,
 }

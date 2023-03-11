@@ -1,1 +1,1 @@
-mod register_module;
+pub mod register_module;

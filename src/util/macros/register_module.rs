@@ -1,11 +1,11 @@
 #[macro_export]
 macro_rules! register_module {
     ($scope: literal, $($method: ident), *) => {
-        pub fn module<T>(app: paperclip::actix::App<T>) -> paperclip::actix::App<T>
+        pub fn module<T>(app: actix_web::App<T>) -> actix_web::App<T>
         where
-            T: actix_web::dev::ServiceFactory<actix_web::dev::ServiceRequest, Config = (), Error = Error, InitError = ()>,
+            T: actix_web::dev::ServiceFactory<actix_web::dev::ServiceRequest, Config = (), Error = actix_web::Error, InitError = ()>,
         {
-            let mut scope = paperclip::actix::web::scope($scope);
+            let mut scope = actix_web::web::scope($scope);
             $(
                 scope = scope.service($method);
             )+
@@ -14,9 +14,9 @@ macro_rules! register_module {
         }
     };
     ($($method: ident), *) => {
-        pub fn module<T>(mut app: paperclip::actix::App<T>) -> paperclip::actix::App<T>
+        pub fn module<T>(mut app: actix_web::App<T>) -> actix_web::App<T>
         where
-            T: actix_web::dev::ServiceFactory<actix_web::dev::ServiceRequest, Config = (), Error = Error, InitError = ()>,
+            T: actix_web::dev::ServiceFactory<actix_web::dev::ServiceRequest, Config = (), Error = actix_web::Error, InitError = ()>,
         {
             $(
                 app = app.service($method);
@@ -24,5 +24,5 @@ macro_rules! register_module {
 
             app
         }
-    }
+    };
 }
