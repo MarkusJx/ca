@@ -1,18 +1,11 @@
-use actix_web::dev::{ServiceFactory, ServiceRequest};
-use actix_web::{App, Error};
+use actix_web::Scope;
 
-pub trait RegisterModule<T>
-where
-    T: ServiceFactory<ServiceRequest, Config = (), Error = Error, InitError = ()>,
-{
-    fn module(self, func: fn(app: App<T>) -> App<T>) -> Self;
+pub trait RegisterModule<U> {
+    fn module(self, func: fn(app: U) -> U) -> Self;
 }
 
-impl<T> RegisterModule<T> for App<T>
-where
-    T: ServiceFactory<ServiceRequest, Config = (), Error = Error, InitError = ()>,
-{
-    fn module(self, func: fn(app: App<T>) -> App<T>) -> Self {
+impl RegisterModule<Scope> for Scope {
+    fn module(self, func: fn(app: Scope) -> Scope) -> Self {
         func(self)
     }
 }

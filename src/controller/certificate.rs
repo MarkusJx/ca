@@ -1,9 +1,9 @@
 use crate::config::app_state::AppState;
-use crate::entities::signing_request;
-use crate::errors::http_response_error::{HttpResponseError, MapHttpResponseError};
-use crate::middlewares::jwt_middleware::JwtMiddleware;
+use crate::entity::signing_request;
+use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
+use crate::middleware::jwt_middleware::JwtMiddleware;
 use crate::mk_certs::mk_ca_signed_cert;
-use crate::models::signing_request::SigningRequest;
+use crate::model::signing_request::SigningRequest;
 use crate::util::traits::u8_vec_to_string::U8VecToString;
 use crate::{mk_certs, register_module};
 use actix_web::web::Json;
@@ -12,7 +12,7 @@ use log::info;
 use openssl::hash::MessageDigest;
 use openssl::pkey::{PKey, Private};
 use openssl::x509::{X509Req, X509};
-use sea_orm::{ActiveModelTrait, ActiveValue};
+use sea_orm::ActiveValue;
 use std::io;
 use std::sync::Mutex;
 
@@ -76,23 +76,22 @@ async fn sign(
         .get()
         .ok_or_else(|| HttpResponseError::internal_error(Some("Failed to retrieve client id")))?;
 
-    signing_request::ActiveModel {
-        id: ActiveValue::NotSet,
-        client_id: ActiveValue::Set(client_id),
-        hash: ActiveValue::Set(
-            signed
-                .digest(MessageDigest::sha256())
-                .map_internal_error(None)?
-                .to_vec()
-                .to_hex_string(":"),
-        ),
-        issued_at: ActiveValue::Set(chrono::Utc::now().into()),
-    }
-    .save(&data.db)
-    .await
-    .map_internal_error(None)?;
+    data.signing_request_service
+        .save(signing_request::ActiveModel {
+            id: ActiveValue::NotSet,
+            client_id: ActiveValue::Set(client_id),
+            hash: ActiveValue::Set(
+                signed
+                    .digest(MessageDigest::sha256())
+                    .map_internal_error(None)?
+                    .to_vec()
+                    .to_hex_string(":"),
+            ),
+            issued_at: ActiveValue::Set(chrono::Utc::now().into()),
+        })
+        .await?;
 
     Ok(signed.to_pem().map_internal_error(None)?.to_string())
 }
 
-register_module!("/api/v1/certificate", ca_certificate, sign);
+register_module!("/certificate", ca_certificate, sign);

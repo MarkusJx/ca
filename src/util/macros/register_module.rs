@@ -1,24 +1,27 @@
 #[macro_export]
 macro_rules! register_module {
     ($scope: literal, $($method: ident), *) => {
-        pub fn module<T>(app: actix_web::App<T>) -> actix_web::App<T>
-        where
-            T: actix_web::dev::ServiceFactory<actix_web::dev::ServiceRequest, Config = (), Error = actix_web::Error, InitError = ()>,
-        {
+        pub fn register() -> actix_web::Scope {
             let mut scope = actix_web::web::scope($scope);
             $(
+                log::debug!(
+                    "Registering method '{}' in scope '{}'",
+                    stringify!($method),
+                    $scope
+                );
                 scope = scope.service($method);
             )+
 
-            app.service(scope)
+            scope
         }
     };
     ($($method: ident), *) => {
-        pub fn module<T>(mut app: actix_web::App<T>) -> actix_web::App<T>
-        where
-            T: actix_web::dev::ServiceFactory<actix_web::dev::ServiceRequest, Config = (), Error = actix_web::Error, InitError = ()>,
-        {
+        pub fn module(mut app: actix_web::Scope) -> actix_web::Scope {
             $(
+                log::debug!(
+                    "Registering method '{}'",
+                    stringify!($method)
+                );
                 app = app.service($method);
             )+
 

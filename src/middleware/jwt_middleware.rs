@@ -1,6 +1,6 @@
 use crate::config::app_state::AppState;
-use crate::errors::http_response_error::HttpResponseError;
-use crate::models::token_claims::TokenClaims;
+use crate::error::http_response_error::HttpResponseError;
+use crate::model::token_claims::TokenClaims;
 use actix_web::dev::{forward_ready, Payload, Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{http, web, Error, FromRequest, HttpMessage, HttpRequest};
 use futures_util::future::LocalBoxFuture;

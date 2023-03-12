@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  database:
+    image: postgres:13
+    container_name: ca-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_MULTIPLE_DATABASES: keycloak,postgres:ca,postgres
+    volumes:
+      - ./create-databases.sh:/docker-entrypoint-initdb.d/create-databases.sh
+#    volumes:
+#      - pg-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ca
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.0
+    command: start-dev
+    container_name: ca-keycloak
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL_HOST: database
+      KC_DB_URL_PORT: 5432
+      DB_DATABASE: postgres
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    depends_on:
+      - database
+    networks:
+      - ca
+
+networks:
+  ca:
+#volumes:
+#    pg-data:

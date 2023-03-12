@@ -1,4 +1,4 @@
-use crate::models::health_info_dto::HealthInfoDto;
+use crate::model::health_info_dto::HealthInfoDto;
 use crate::register_module;
 use actix_web::{get, web, Responder};
 
@@ -21,4 +21,4 @@ async fn health_check() -> impl Responder {
     })
 }
 
-register_module!("/api/v1", health_check);
+register_module!(health_check);

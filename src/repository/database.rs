@@ -1,10 +1,23 @@
-use crate::entities::{client, signing_request, user};
+use crate::config::config::Config;
+use crate::entity::{client, signing_request, user};
+use log::debug;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Schema};
 use std::error::Error;
 use std::time::Duration;
 
-pub async fn connect() -> Result<DatabaseConnection, Box<dyn Error>> {
-    let mut opts = ConnectOptions::new("postgres://postgres:postgres@localhost/postgres".into());
+pub async fn connect(config: &Config) -> Result<DatabaseConnection, Box<dyn Error>> {
+    let url = format!(
+        "{}://{}:{}@{}:{}/{}",
+        config.db_vendor,
+        config.db_user,
+        config.db_password,
+        config.db_host,
+        config.db_port,
+        config.db_name
+    );
+    debug!("Connecting to database: {}", url);
+
+    let mut opts = ConnectOptions::new(url);
     opts.max_connections(10)
         .min_connections(5)
         .connect_timeout(Duration::from_secs(8))

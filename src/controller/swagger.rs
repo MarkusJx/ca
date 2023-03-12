@@ -1,4 +1,3 @@
-use crate::register_module;
 use actix_web::get;
 use actix_web::{HttpRequest, HttpResponse};
 use lazy_static::lazy_static;
@@ -10,7 +9,7 @@ lazy_static! {
 }
 
 #[get("/swagger-ui/{filename:.*}")]
-async fn get_swagger_ui(req: HttpRequest) -> HttpResponse {
+pub async fn get_swagger_ui(req: HttpRequest) -> HttpResponse {
     let file = req.path()[12..].to_string();
 
     match utoipa_swagger_ui::serve(file.as_ref(), CONFIG.clone()) {
@@ -24,5 +23,3 @@ async fn get_swagger_ui(req: HttpRequest) -> HttpResponse {
         Err(error) => HttpResponse::InternalServerError().body(error.to_string()),
     }
 }
-
-register_module!(get_swagger_ui);

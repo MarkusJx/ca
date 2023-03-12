@@ -1,24 +1,29 @@
 mod config;
 mod controller;
-mod entities;
-mod errors;
-mod middlewares;
+mod entity;
+mod error;
+mod middleware;
 mod mk_certs;
-mod models;
-mod repositories;
+mod model;
+mod repository;
+mod service;
 mod util;
 
 use crate::controller::{certificate, common, swagger, user};
-use crate::errors::http_response_error::MapHttpResponseError;
+use crate::error::http_response_error::MapHttpResponseError;
 use crate::mk_certs::mk_request;
-use crate::repositories::database;
+use crate::repository::database;
+use crate::service::client_service::ClientService;
+use crate::service::keycloak_service::KeycloakService;
+use crate::service::signing_request_service::SigningRequestService;
+use crate::service::user_service::UserService;
 use crate::util::api_doc::ApiDoc;
 use crate::util::traits::map_error_to_io_error::MapErrorToIoError;
 use crate::util::traits::register_module::RegisterModule;
 use crate::util::traits::u8_vec_to_string::U8VecToString;
 use actix_web::get;
-use actix_web::web::Json;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::web::{scope, Json};
+use actix_web::{middleware as actix_middleware, web, App, HttpServer};
 use config::app_state::AppState;
 use log::info;
 use log4rs::append::console::ConsoleAppender;
@@ -82,30 +87,44 @@ async fn main() -> io::Result<()> {
 
     log4rs::init_config(config).unwrap();
 
-    info!("Connecting to database");
-    let db = database::connect().await.map_to_io_error()?;
-    info!("Creating tables");
-    database::fill(&db).await.map_to_io_error()?;
-
     info!("Loading config");
     let config = config::config::Config::init().map_to_io_error()?;
 
+    info!("Connecting to database");
+    let db = database::connect(&config).await.map_to_io_error()?;
+    info!("Creating tables");
+    database::fill(&db).await.map_to_io_error()?;
+
+    info!("Connecting to keycloak");
+    let keycloak_service = KeycloakService::new(&config).await.map_to_io_error()?;
+
+    if config.keycloak_init_realm {
+        info!("Initializing keycloak realm");
+        keycloak_service.init_realm().await.map_to_io_error()?;
+    }
+
     info!("Starting http server");
     HttpServer::new(move || {
+        let scope = scope("/api/v1")
+            .service(certificate::register())
+            .module(user::module)
+            .module(common::module);
+
         App::new()
             .app_data(web::Data::new(AppState {
-                db: db.clone(),
                 config: config.clone(),
+                keycloak_service: keycloak_service.clone(),
+                client_service: ClientService::new(db.clone()),
+                user_service: UserService::new(db.clone()),
+                signing_request_service: SigningRequestService::new(db.clone()),
             }))
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/schema.json", ApiDoc::openapi()),
             )
-            .wrap(middleware::Logger::default())
+            .wrap(actix_middleware::Logger::default())
             .service(generate_client)
-            .module(certificate::module)
-            .module(swagger::module)
-            .module(user::module)
-            .module(common::module)
+            .service(swagger::get_swagger_ui)
+            .service(scope)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

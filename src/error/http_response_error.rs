@@ -1,4 +1,4 @@
-use crate::models::error_dto::ErrorDto;
+use crate::model::error_dto::ErrorDto;
 use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;
 use actix_web::{error, HttpResponse};
@@ -16,6 +16,8 @@ pub enum HttpResponseErrorCode {
     NotFound,
     #[display(fmt = "Unauthorized")]
     Unauthorized,
+    #[display(fmt = "FailedDependency")]
+    FailedDependency,
 }
 
 #[derive(Debug, Clone)]
@@ -50,6 +52,13 @@ impl HttpResponseError {
             message.map(|m| m.into()),
         )
     }
+
+    pub fn failed_dependency<T: Into<String>>(message: Option<T>) -> Self {
+        Self::new(
+            HttpResponseErrorCode::FailedDependency,
+            message.map(|m| m.into()),
+        )
+    }
 }
 
 impl Display for HttpResponseError {
@@ -67,6 +76,8 @@ pub trait MapHttpResponseError<T> {
     fn map_bad_request(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 
     fn map_not_found(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+
+    fn map_failed_dependency(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 }
 
 impl<T, E> MapHttpResponseError<T> for Result<T, E>
@@ -93,6 +104,13 @@ where
             HttpResponseError::not_found(message).into()
         })
     }
+
+    fn map_failed_dependency(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+        self.map_err(|e| {
+            error!("Failed dependency: {}", e);
+            HttpResponseError::failed_dependency(message).into()
+        })
+    }
 }
 
 impl error::ResponseError for HttpResponseError {
@@ -102,6 +120,7 @@ impl error::ResponseError for HttpResponseError {
             HttpResponseErrorCode::BadRequest => StatusCode::BAD_REQUEST,
             HttpResponseErrorCode::NotFound => StatusCode::NOT_FOUND,
             HttpResponseErrorCode::Unauthorized => StatusCode::UNAUTHORIZED,
+            HttpResponseErrorCode::FailedDependency => StatusCode::FAILED_DEPENDENCY,
         }
     }
 

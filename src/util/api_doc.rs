@@ -7,13 +7,17 @@ use utoipa::OpenApi;
         crate::controller::certificate::sign,
         crate::controller::common::health_check,
         crate::controller::user::create,
+        crate::controller::user::list,
+        crate::controller::user::get,
+        crate::controller::user::delete,
         crate::generate_client
     ),
     components(
-        schemas(crate::models::signing_request::SigningRequest),
-        schemas(crate::models::error_dto::ErrorDto),
-        schemas(crate::models::health_info_dto::HealthInfoDto),
-        schemas(crate::models::user_dto::UserDto),
+        schemas(crate::model::signing_request::SigningRequest),
+        schemas(crate::model::error_dto::ErrorDto),
+        schemas(crate::model::health_info_dto::HealthInfoDto),
+        schemas(crate::model::user_dto::UserDto),
+        schemas(crate::model::create_user_dto::CreateUserDto),
         schemas(crate::ClientCert)
     ),
     tags(

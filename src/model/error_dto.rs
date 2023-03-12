@@ -1,4 +1,4 @@
-use crate::errors::http_response_error::HttpResponseError;
+use crate::error::http_response_error::HttpResponseError;
 use actix_web::ResponseError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
