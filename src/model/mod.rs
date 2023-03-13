@@ -1,3 +1,5 @@
+pub mod client_dto;
+pub mod create_client_dto;
 pub mod create_user_dto;
 pub mod error_dto;
 pub mod health_info_dto;

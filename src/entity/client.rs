@@ -16,6 +16,7 @@ pub struct Model {
     pub user_id: Uuid,
     #[sea_orm(unique)]
     pub name: String,
+    pub token_hash: String,
     pub active: bool,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,

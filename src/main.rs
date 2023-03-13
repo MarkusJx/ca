@@ -9,7 +9,7 @@ mod repository;
 mod service;
 mod util;
 
-use crate::controller::{certificate, common, swagger, user};
+use crate::controller::{certificate, client_controller, common, swagger, user_controller};
 use crate::error::http_response_error::MapHttpResponseError;
 use crate::mk_certs::mk_request;
 use crate::repository::database;
@@ -107,7 +107,8 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         let scope = scope("/api/v1")
             .service(certificate::register())
-            .module(user::module)
+            .module(user_controller::module)
+            .module(client_controller::module)
             .module(common::module);
 
         App::new()

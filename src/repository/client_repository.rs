@@ -8,6 +8,16 @@ use uuid::Uuid;
 pub struct ClientRepository;
 
 impl ClientRepository {
+    pub async fn insert<C: ConnectionTrait>(
+        db: &C,
+        model: client::ActiveModel,
+    ) -> DbResult<client::Model> {
+        model
+        .insert(db)
+        .await
+        .map_err(|e| e.into())
+    }
+
     pub async fn find_by_name<C: ConnectionTrait>(
         db: &C,
         name: &str,

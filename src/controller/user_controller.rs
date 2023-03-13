@@ -5,12 +5,30 @@ use crate::model::create_user_dto::CreateUserDto;
 use crate::model::user_dto::UserDto;
 use crate::register_module;
 use crate::util::types::WebResult;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use actix_web::{delete, get, post, web, HttpResponse, Responder};
 use futures_util::future::join_all;
 use keycloak::types::{CredentialRepresentation, UserRepresentation};
 use log::debug;
-use sea_orm::{ActiveValue, IntoActiveModel};
+use sea_orm::ActiveValue;
+use serde::Deserialize;
+use utoipa::IntoParams;
+
+#[derive(Deserialize, Debug, IntoParams)]
+pub struct UserQuery {
+    /// Whether to include inactive users in the result.
+    /// Defaults to false.
+    #[serde(rename = "includeInactive")]
+    pub include_inactive: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, IntoParams)]
+struct DeleteQuery {
+    /// Whether to delete the user rather than just deactivating it.
+    /// Defaults to false.
+    #[serde(rename = "deleteInDatabase")]
+    pub delete_in_database: Option<bool>,
+}
 
 #[utoipa::path(
     post,
@@ -37,7 +55,7 @@ async fn create(
     }
 
     data.user_service
-        .find_by_name(user.name.as_str())
+        .find_by_name(user.name.as_str(), true)
         .await?
         .map(|_| Err(HttpResponseError::bad_request(Some("User already exists"))))
         .unwrap_or(Ok(()))?;
@@ -103,13 +121,14 @@ async fn create(
         })
         .await?;
 
-    Ok(Json(UserDto::from_model(model, kc_user)))
+    Ok(Json(UserDto::from_model(model, Some(kc_user))))
 }
 
 #[utoipa::path(
     get,
     tag = "Users",
     context_path = "/api/v1",
+    params(UserQuery),
     responses(
         (status = 200, description = "Ok", body = Vec<UserDto>),
         (status = 401, description = "Unauthorized", body = ErrorDto),
@@ -118,15 +137,19 @@ async fn create(
     ),
 )]
 #[get("/user/list")]
-async fn list(data: web::Data<AppState>) -> Result<impl Responder, HttpResponseError> {
+async fn list(
+    data: web::Data<AppState>,
+    query: Query<UserQuery>,
+) -> Result<impl Responder, HttpResponseError> {
     async fn map_user(
         model: user::Model,
         data: &web::Data<AppState>,
-    ) -> Result<(user::Model, UserRepresentation), HttpResponseError> {
-        let kc_user = data
-            .keycloak_service
-            .get_user_by_id(model.external_id.as_ref().unwrap())
-            .await?;
+    ) -> Result<(user::Model, Option<UserRepresentation>), HttpResponseError> {
+        let kc_user = if let Some(id) = model.external_id.as_ref() {
+            Some(data.keycloak_service.get_user_by_id(id).await?)
+        } else {
+            None
+        };
 
         Ok((model, kc_user))
     }
@@ -134,7 +157,7 @@ async fn list(data: web::Data<AppState>) -> Result<impl Responder, HttpResponseE
     Ok(Json(
         join_all(
             data.user_service
-                .find_all()
+                .find_all(query.include_inactive.unwrap_or(false))
                 .await?
                 .into_iter()
                 .map(|model| map_user(model, &data)),
@@ -153,7 +176,8 @@ async fn list(data: web::Data<AppState>) -> Result<impl Responder, HttpResponseE
     tag = "Users",
     context_path = "/api/v1",
     params(
-        ("id", description = "Id of the user to find")
+        ("id", description = "Id of the user to find"),
+        UserQuery
     ),
     responses(
         (status = 200, description = "Ok", body = UserDto),
@@ -168,16 +192,56 @@ async fn list(data: web::Data<AppState>) -> Result<impl Responder, HttpResponseE
 async fn get(
     id: web::Path<String>,
     data: web::Data<AppState>,
+    query: Query<UserQuery>,
 ) -> Result<impl Responder, HttpResponseError> {
     let model = data
         .user_service
-        .find_by_id_string_unwrap(&id.into_inner())
+        .find_by_id_string_unwrap(&id.into_inner(), query.include_inactive.unwrap_or(false))
         .await?;
 
-    let kc_user = data
-        .keycloak_service
-        .get_user_by_id(model.external_id.as_ref().unwrap())
-        .await?;
+    let kc_user = if let Some(id) = model.external_id.as_ref() {
+        Some(data.keycloak_service.get_user_by_id(id).await?)
+    } else {
+        None
+    };
+
+    Ok(Json(UserDto::from_model(model, kc_user)))
+}
+
+#[utoipa::path(
+    get,
+    tag = "Users",
+    context_path = "/api/v1",
+    params(
+        ("name", description = "Name of the user to find"),
+        UserQuery
+    ),
+    responses(
+        (status = 200, description = "Ok", body = UserDto),
+        (status = 400, description = "Bad request", body = ErrorDto),
+        (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 404, description = "Not found", body = ErrorDto),
+        (status = 424, description = "Failed dependency", body = ErrorDto),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+)]
+#[get("/user/by-name/{name}")]
+async fn by_name(
+    name: web::Path<String>,
+    data: web::Data<AppState>,
+    query: Query<UserQuery>,
+) -> Result<impl Responder, HttpResponseError> {
+    let model = data
+        .user_service
+        .find_by_name(&name.into_inner(), query.include_inactive.unwrap_or(false))
+        .await?
+        .ok_or(HttpResponseError::not_found(Some("User not found")))?;
+
+    let kc_user = if let Some(id) = model.external_id.as_ref() {
+        Some(data.keycloak_service.get_user_by_id(id).await?)
+    } else {
+        None
+    };
 
     Ok(Json(UserDto::from_model(model, kc_user)))
 }
@@ -187,7 +251,8 @@ async fn get(
     tag = "Users",
     context_path = "/api/v1",
     params(
-        ("id", description = "Id of the user to delete")
+        ("id", description = "Id of the user to delete"),
+        DeleteQuery
     ),
     responses(
         (status = 204, description = "User deleted"),
@@ -202,18 +267,24 @@ async fn get(
 async fn delete(
     id: web::Path<String>,
     data: web::Data<AppState>,
+    query: Query<DeleteQuery>,
 ) -> Result<impl Responder, HttpResponseError> {
     let user = data
         .user_service
-        .find_by_id_string_unwrap(&id.into_inner())
+        .find_by_id_string_unwrap(&id.into_inner(), true)
         .await?;
 
     data.keycloak_service
         .delete_user(user.external_id.as_ref().unwrap())
         .await?;
-    data.user_service.disable(user.into()).await?;
+
+    if query.delete_in_database.unwrap_or(true) {
+        data.user_service.delete(user).await?;
+    } else {
+        data.user_service.disable(user.into()).await?;
+    }
 
     Ok(HttpResponse::NoContent().finish())
 }
 
-register_module!(create, list, get, delete);
+register_module!(create, list, get, delete, by_name);

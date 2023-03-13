@@ -43,7 +43,7 @@ impl ActiveModelBehavior for ActiveModel {
     {
         if insert {
             let mut id = Uuid::new_v4();
-            while let Some(_) = UserRepository::find_by_id(db, &id).await? {
+            while let Some(_) = UserRepository::find_by_id(db, &id, true).await? {
                 id = Uuid::new_v4();
             }
 

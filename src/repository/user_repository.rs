@@ -1,7 +1,7 @@
 use crate::entity::user;
 use crate::util::types::DbResult;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DeleteResult, EntityTrait,
     ModelTrait, QueryFilter,
 };
 use uuid::Uuid;
@@ -12,37 +12,55 @@ impl UserRepository {
     pub async fn find_by_name<C: ConnectionTrait>(
         db: &C,
         name: &str,
+        include_inactive: bool,
     ) -> DbResult<Option<user::Model>> {
-        user::Entity::find()
-            .filter(user::Column::Name.eq(name))
-            .filter(user::Column::Active.eq(true))
-            .one(db)
-            .await
+        let mut q = user::Entity::find().filter(user::Column::Name.eq(name));
+        if !include_inactive {
+            q = q.filter(user::Column::Active.eq(true));
+        }
+
+        q.one(db).await
     }
 
     pub async fn find_by_id<C: ConnectionTrait>(
         db: &C,
         id: &Uuid,
+        include_inactive: bool,
     ) -> DbResult<Option<user::Model>> {
-        user::Entity::find_by_id(id.clone())
-            .filter(user::Column::Active.eq(true))
-            .one(db)
-            .await
+        let mut q = user::Entity::find_by_id(id.clone());
+        if !include_inactive {
+            q = q.filter(user::Column::Active.eq(true));
+        }
+        q.one(db).await
     }
 
-    pub async fn find_all<C: ConnectionTrait>(db: &C) -> DbResult<Vec<user::Model>> {
-        user::Entity::find()
-            .filter(user::Column::Active.eq(true))
-            .all(db)
-            .await
+    pub async fn find_all<C: ConnectionTrait>(
+        db: &C,
+        include_inactive: bool,
+    ) -> DbResult<Vec<user::Model>> {
+        let mut q = user::Entity::find();
+        if !include_inactive {
+            q = q.filter(user::Column::Active.eq(true));
+        }
+
+        q.all(db).await
     }
 
-    pub async fn delete_by_id<C: ConnectionTrait>(db: &C, id: &Uuid) -> DbResult<DeleteResult> {
-        Self::find_by_id(db, id)
-            .await?
-            .ok_or(DbErr::RecordNotFound(id.to_string()))?
-            .delete(db)
-            .await
+    pub async fn find_by_external_id<C: ConnectionTrait>(
+        db: &C,
+        external_id: &str,
+        include_inactive: bool,
+    ) -> DbResult<Option<user::Model>> {
+        let mut q = user::Entity::find().filter(user::Column::ExternalId.eq(external_id));
+        if !include_inactive {
+            q = q.filter(user::Column::Active.eq(true));
+        }
+
+        q.one(db).await
+    }
+
+    pub async fn delete<C: ConnectionTrait>(db: &C, model: user::Model) -> DbResult<DeleteResult> {
+        model.delete(db).await
     }
 
     pub async fn disable<C: ConnectionTrait>(

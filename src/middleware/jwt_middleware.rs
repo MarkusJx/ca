@@ -27,7 +27,7 @@ where
 }
 
 pub struct JwtMiddleware {
-    pub user_id: uuid::Uuid,
+    pub id: uuid::Uuid,
 }
 
 impl JwtMiddleware {
@@ -58,11 +58,11 @@ impl JwtMiddleware {
             }
         };
 
-        let user_id = uuid::Uuid::parse_str(claims.sub.as_str()).unwrap();
+        let id = uuid::Uuid::parse_str(claims.sub.as_str()).unwrap();
         req.extensions_mut()
-            .insert::<uuid::Uuid>(user_id.to_owned());
+            .insert::<uuid::Uuid>(id.to_owned());
 
-        Ok(JwtMiddleware { user_id })
+        Ok(JwtMiddleware { id })
     }
 }
 
