@@ -11,6 +11,7 @@ mod util;
 
 use crate::controller::{certificate, client_controller, common, swagger, user_controller};
 use crate::error::http_response_error::MapHttpResponseError;
+use crate::middleware::keycloak_middleware;
 use crate::mk_certs::mk_request;
 use crate::repository::database;
 use crate::service::client_service::ClientService;
@@ -25,7 +26,8 @@ use actix_web::get;
 use actix_web::web::{scope, Json};
 use actix_web::{middleware as actix_middleware, web, App, HttpServer};
 use config::app_state::AppState;
-use log::info;
+use keycloak::types::UserRepresentation;
+use log::{debug, info};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Logger, Root};
 use log4rs::Config;
@@ -102,6 +104,20 @@ async fn main() -> io::Result<()> {
         info!("Initializing keycloak realm");
         keycloak_service.init_realm().await.map_to_io_error()?;
     }
+
+    info!("Setting keycloak certificate");
+    keycloak_middleware::set_keycloak_public_key(
+        keycloak_service
+            .get_realm_public_key()
+            .await
+            .map_to_io_error()?,
+    )
+    .map_to_io_error()?;
+
+    debug!(
+        "{:?}",
+        keycloak_service.get_client_by_name("test").await.unwrap()
+    );
 
     info!("Starting http server");
     HttpServer::new(move || {

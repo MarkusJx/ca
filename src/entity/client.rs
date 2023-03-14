@@ -18,6 +18,7 @@ pub struct Model {
     pub name: String,
     pub token_hash: String,
     pub active: bool,
+    pub valid_until: DateTimeWithTimeZone,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -54,13 +55,16 @@ impl ActiveModelBehavior for ActiveModel {
         C: ConnectionTrait,
     {
         if insert {
-            let mut id = Uuid::new_v4();
-            while let Some(_) = ClientRepository::find_by_id(db, &id).await? {
-                id = Uuid::new_v4();
+            if self.id.is_not_set() {
+                let mut id = Uuid::new_v4();
+                while let Some(_) = ClientRepository::find_by_id(db, &id, true).await? {
+                    id = Uuid::new_v4();
+                }
+
+                self.id = ActiveValue::Set(id);
             }
 
             self.active = ActiveValue::Set(true);
-            self.id = ActiveValue::Set(id);
             self.created_at = ActiveValue::Set(Utc::now().into());
         }
 

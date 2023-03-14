@@ -1,11 +1,13 @@
 use crate::config::app_state::AppState;
-use crate::error::http_response_error::HttpResponseError;
+use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::model::token_claims::TokenClaims;
+use crate::util::types::WebResult;
 use actix_web::dev::{forward_ready, Payload, Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{http, web, Error, FromRequest, HttpMessage, HttpRequest};
 use futures_util::future::LocalBoxFuture;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use std::future::{ready, Ready};
+use log::info;
 
 pub struct Jwt;
 
@@ -34,13 +36,24 @@ impl JwtMiddleware {
     fn new(req: &HttpRequest) -> Result<Self, Error> {
         let data = req.app_data::<web::Data<AppState>>().unwrap();
 
-        let token = req
+        let token: Option<WebResult<String>> = req
             .cookie("token")
-            .map(|c| c.value().to_string())
+            .map(|c| Ok(c.value().to_string()))
             .or_else(|| {
-                req.headers()
-                    .get(http::header::AUTHORIZATION)
-                    .map(|h| h.to_str().unwrap().split_at(7).1.to_string())
+                req.headers().get(http::header::AUTHORIZATION).map(|h| {
+                    let s = h.to_str().map_bad_request(Some("Invalid token provided"))?;
+                    if !s.starts_with("Bearer ") {
+                        return Err(HttpResponseError::bad_request(Some(
+                            "Invalid token provided",
+                        )));
+                    }
+
+                    Ok(s.get(7..)
+                        .ok_or(HttpResponseError::bad_request(Some(
+                            "Invalid token provided",
+                        )))?
+                        .to_string())
+                })
             });
 
         if token.is_none() {
@@ -48,19 +61,18 @@ impl JwtMiddleware {
         }
 
         let claims = match decode::<TokenClaims>(
-            &token.unwrap(),
+            &token.unwrap()?,
             &DecodingKey::from_secret(data.config.jwt_secret.as_ref()),
             &Validation::default(),
         ) {
             Ok(c) => c.claims,
-            Err(_) => {
-                return Err(HttpResponseError::unauthorized(Some("Invalid token")).into());
+            Err(e) => {
+                return Err(e).map_unauthorized(Some("Invalid token"))?;
             }
         };
 
         let id = uuid::Uuid::parse_str(claims.sub.as_str()).unwrap();
-        req.extensions_mut()
-            .insert::<uuid::Uuid>(id.to_owned());
+        req.extensions_mut().insert::<uuid::Uuid>(id.to_owned());
 
         Ok(JwtMiddleware { id })
     }

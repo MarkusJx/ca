@@ -54,7 +54,7 @@ impl ActiveModelBehavior for ActiveModel {
 
         if !self.active.as_ref() {
             join_all(
-                ClientRepository::find_all_by_user(db, self.id.as_ref())
+                ClientRepository::find_all_by_user(db, self.id.as_ref(), false)
                     .await?
                     .into_iter()
                     .map(|c| ClientRepository::disable(db, c.into())),
@@ -73,7 +73,7 @@ impl ActiveModelBehavior for ActiveModel {
         C: ConnectionTrait,
     {
         join_all(
-            ClientRepository::find_all_by_user(db, self.id.as_ref())
+            ClientRepository::find_all_by_user(db, self.id.as_ref(), true)
                 .await?
                 .into_iter()
                 .map(|c| c.delete(db)),

@@ -1,4 +1,5 @@
 use crate::model::error_dto::ErrorDto;
+use crate::util::types::{BasicResult, WebResult};
 use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;
 use actix_web::{error, HttpResponse};
@@ -78,6 +79,8 @@ pub trait MapHttpResponseError<T> {
     fn map_not_found(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 
     fn map_failed_dependency(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+
+    fn map_unauthorized(self, message: Option<&str>) -> Result<T, HttpResponseError>;
 }
 
 impl<T, E> MapHttpResponseError<T> for Result<T, E>
@@ -111,6 +114,13 @@ where
             HttpResponseError::failed_dependency(message).into()
         })
     }
+
+    fn map_unauthorized(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+        self.map_err(|e| {
+            error!("Unauthorized: {}", e);
+            HttpResponseError::unauthorized(message).into()
+        })
+    }
 }
 
 impl error::ResponseError for HttpResponseError {
@@ -128,5 +138,15 @@ impl error::ResponseError for HttpResponseError {
         HttpResponse::build(self.status_code())
             .insert_header(ContentType::json())
             .body(serde_json::to_string(&ErrorDto::from(self.clone())).unwrap())
+    }
+}
+
+pub trait MapToBasicResult<T> {
+    fn map_error_to_basic(self) -> BasicResult<T>;
+}
+
+impl<T> MapToBasicResult<T> for WebResult<T> {
+    fn map_error_to_basic(self) -> BasicResult<T> {
+        self.map_err(|e| e.to_string().into())
     }
 }

@@ -7,7 +7,7 @@ use crate::model::signing_request::SigningRequest;
 use crate::util::traits::u8_vec_to_string::U8VecToString;
 use crate::{mk_certs, register_module};
 use actix_web::web::Json;
-use actix_web::{get, post, web, HttpMessage, HttpRequest};
+use actix_web::{get, post, web};
 use log::info;
 use openssl::hash::MessageDigest;
 use openssl::pkey::{PKey, Private};
@@ -59,27 +59,30 @@ async fn ca_certificate() -> Result<String, HttpResponseError> {
         (status = 401, description = "Unauthorized", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
+    security(
+        ("jwt" = [])
+    )
 )]
 #[post("/sign")]
 async fn sign(
     request: Json<SigningRequest>,
-    http_request: HttpRequest,
     data: web::Data<AppState>,
-    _: JwtMiddleware,
+    jwt: JwtMiddleware,
 ) -> Result<String, HttpResponseError> {
+    data.client_service
+        .find_by_id(&jwt.id, false)
+        .await?
+        .ok_or(HttpResponseError::bad_request(Some("Client not found")))?;
+
     let req = X509Req::from_pem(request.cert.as_bytes()).map_internal_error(None)?;
     let ca_cert = get_ca_cert().map_internal_error(None)?;
 
     let signed = mk_ca_signed_cert(&req, &ca_cert.0, &ca_cert.1).map_internal_error(None)?;
-    let client_id = *http_request
-        .extensions()
-        .get()
-        .ok_or_else(|| HttpResponseError::internal_error(Some("Failed to retrieve client id")))?;
 
     data.signing_request_service
         .save(signing_request::ActiveModel {
             id: ActiveValue::NotSet,
-            client_id: ActiveValue::Set(client_id),
+            client_id: ActiveValue::Set(jwt.id),
             hash: ActiveValue::Set(
                 signed
                     .digest(MessageDigest::sha256())

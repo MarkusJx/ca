@@ -19,6 +19,9 @@ pub struct ClientDto {
     pub token_hash: String,
     /// Whether the client is active
     pub active: bool,
+    /// The time the client is valid until
+    #[serde(rename = "validUntil")]
+    pub valid_until: String,
     /// The time the client was created
     #[serde(rename = "createdAt")]
     pub created_at: String,
@@ -36,6 +39,7 @@ impl FromModel<client::Model> for ClientDto {
             token: None,
             token_hash: model.token_hash,
             active: model.active,
+            valid_until: model.valid_until.to_string(),
             created_at: model.created_at.to_string(),
             updated_at: model.updated_at.to_string(),
         }

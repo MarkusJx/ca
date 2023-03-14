@@ -34,10 +34,13 @@ services:
       DB_DATABASE: postgres
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
+      #KC_IMPORT: "/opt/keycloak/data/import/realm-export.json -Dkeycloak.profile.feature.upload_scripts=enabled"
     depends_on:
       - database
     networks:
       - ca
+    #volumes:
+    #  - ./realm-export.json:/opt/keycloak/data/import/realm-export.json
 
 networks:
   ca:
