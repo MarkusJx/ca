@@ -1,6 +1,7 @@
 use crate::config::app_state::AppState;
 use crate::entity::client;
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
+use crate::middleware::extractors::KeycloakUserClaims;
 use crate::middleware::keycloak_middleware;
 use crate::model::client_dto::ClientDto;
 use crate::model::create_client_dto::CreateClientDto;
@@ -11,7 +12,6 @@ use crate::util::traits::u8_vec_to_string::U8VecToString;
 use crate::util::types::WebResult;
 use actix_web::web::{Data, Json, Path, Query};
 use actix_web::{delete, get, post, HttpResponse, Responder};
-use actix_web_middleware_keycloak_auth::StandardKeycloakClaims;
 use jsonwebtoken::EncodingKey;
 use log::debug;
 use openssl::sha::Sha256;
@@ -57,16 +57,9 @@ struct DeleteQuery {
 async fn create(
     client: Json<CreateClientDto>,
     data: Data<AppState>,
-    claims: StandardKeycloakClaims,
+    claims: KeycloakUserClaims,
 ) -> WebResult<Json<ClientDto>> {
-    let user_id = Uuid::from_bytes(claims.sub.as_bytes().clone());
-    debug!("Creating client for user {}", user_id);
-
-    let user = data
-        .user_service
-        .find_by_external_id(&user_id.to_string(), false)
-        .await?
-        .ok_or(HttpResponseError::bad_request(Some("User not found")))?;
+    debug!("Creating client for user {}", claims.user.id);
 
     let expiry_date = DateTimeWithTimeZone::parse_from_rfc3339(&client.valid_until)
         .map_bad_request(Some("Invalid date supplied"))?;
@@ -99,7 +92,7 @@ async fn create(
         .insert(client::ActiveModel {
             id: ActiveValue::Set(client_id),
             name: ActiveValue::Set(client.name.clone()),
-            user_id: ActiveValue::Set(user.id),
+            user_id: ActiveValue::Set(claims.user.id),
             token_hash: ActiveValue::Set(token_hash),
             valid_until: ActiveValue::Set(expiry_date),
             ..Default::default()
@@ -109,6 +102,47 @@ async fn create(
     let mut dto = ClientDto::from_model(client);
     dto.token = Some(token);
     Ok(Json(dto))
+}
+
+#[utoipa::path(
+    get,
+    tag = "Clients",
+    context_path = "/api/v1",
+    params(
+        ("id", description = "Client id"),
+        ClientQuery
+    ),
+    responses(
+        (status = 200, description = "Ok", body = ClientDto),
+        (status = 400, description = "Bad request", body = ErrorDto),
+        (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 424, description = "Failed dependency", body = ErrorDto),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+    security(
+        ("oauth2" = [])
+    )
+)]
+#[get("/client/{id}", wrap = "keycloak_middleware::Keycloak")]
+async fn by_id(
+    data: Data<AppState>,
+    path: Path<String>,
+    query: Query<ClientQuery>,
+    claims: KeycloakUserClaims,
+) -> WebResult<Json<ClientDto>> {
+    let client_id = Uuid::parse_str(&path)
+        .map_bad_request(Some("Invalid client id supplied"))?;
+    let client = data
+        .client_service
+        .find_by_id(&client_id, query.include_inactive.unwrap_or(false))
+        .await?
+        .ok_or(HttpResponseError::not_found(Some("Client not found")))?;
+
+    if client.user_id != claims.user.id {
+        return Err(HttpResponseError::unauthorized(Some("You are not authorized to access this client")));
+    }
+
+    Ok(Json(ClientDto::from_model(client)))
 }
 
 #[utoipa::path(
@@ -131,18 +165,11 @@ async fn create(
 async fn list(
     data: Data<AppState>,
     query: Query<ClientQuery>,
-    claims: StandardKeycloakClaims,
+    claims: KeycloakUserClaims,
 ) -> WebResult<Json<Vec<ClientDto>>> {
-    let user_id = Uuid::from_bytes(claims.sub.as_bytes().clone());
-    let user = data
-        .user_service
-        .find_by_external_id(&user_id.to_string(), false)
-        .await?
-        .ok_or(HttpResponseError::bad_request(Some("User not found")))?;
-
     Ok(Json(
         data.client_service
-            .find_all_by_user(&user.id, query.include_inactive.unwrap_or(false))
+            .find_all_by_user(&claims.user.id, query.include_inactive.unwrap_or(false))
             .await?
             .into_iter()
             .map(|c| ClientDto::from_model(c))
@@ -174,21 +201,14 @@ async fn delete(
     data: Data<AppState>,
     path: Path<String>,
     query: Query<DeleteQuery>,
-    claims: StandardKeycloakClaims,
+    claims: KeycloakUserClaims,
 ) -> WebResult<impl Responder> {
-    let user_id = Uuid::from_bytes(claims.sub.as_bytes().clone());
-    let user = data
-        .user_service
-        .find_by_external_id(&user_id.to_string(), false)
-        .await?
-        .ok_or(HttpResponseError::bad_request(Some("User not found")))?;
-
     let client = data
         .client_service
         .find_by_id_string_unwrap(path.as_ref(), true)
         .await?;
 
-    if client.user_id != user.id {
+    if client.user_id != claims.user.id {
         return Err(HttpResponseError::bad_request(Some("Client not found")));
     }
 
@@ -211,4 +231,4 @@ async fn delete(
     Ok(HttpResponse::NoContent().finish())
 }
 
-register_module!(create, list, delete);
+register_module!(create, list, by_id, delete);

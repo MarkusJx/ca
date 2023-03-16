@@ -1,7 +1,7 @@
 use crate::config::app_state::AppState;
 use crate::entity::signing_request;
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
-use crate::middleware::jwt_middleware::JwtMiddleware;
+use crate::middleware::extractors::JwtClientClaims;
 use crate::mk_certs::mk_ca_signed_cert;
 use crate::model::signing_request::SigningRequest;
 use crate::util::traits::u8_vec_to_string::U8VecToString;
@@ -67,13 +67,8 @@ async fn ca_certificate() -> Result<String, HttpResponseError> {
 async fn sign(
     request: Json<SigningRequest>,
     data: web::Data<AppState>,
-    jwt: JwtMiddleware,
+    claims: JwtClientClaims,
 ) -> Result<String, HttpResponseError> {
-    data.client_service
-        .find_by_id(&jwt.id, false)
-        .await?
-        .ok_or(HttpResponseError::bad_request(Some("Client not found")))?;
-
     let req = X509Req::from_pem(request.cert.as_bytes()).map_internal_error(None)?;
     let ca_cert = get_ca_cert().map_internal_error(None)?;
 
@@ -82,7 +77,7 @@ async fn sign(
     data.signing_request_service
         .save(signing_request::ActiveModel {
             id: ActiveValue::NotSet,
-            client_id: ActiveValue::Set(jwt.id),
+            client_id: ActiveValue::Set(claims.client.id),
             hash: ActiveValue::Set(
                 signed
                     .digest(MessageDigest::sha256())

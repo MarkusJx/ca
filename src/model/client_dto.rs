@@ -13,6 +13,7 @@ pub struct ClientDto {
     #[serde(rename = "userId")]
     pub user_id: String,
     /// The client token. Only returned when creating a new client.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
     /// The client token hash
     #[serde(rename = "tokenHash")]
@@ -39,9 +40,9 @@ impl FromModel<client::Model> for ClientDto {
             token: None,
             token_hash: model.token_hash,
             active: model.active,
-            valid_until: model.valid_until.to_string(),
-            created_at: model.created_at.to_string(),
-            updated_at: model.updated_at.to_string(),
+            valid_until: model.valid_until.to_rfc3339(),
+            created_at: model.created_at.to_rfc3339(),
+            updated_at: model.updated_at.to_rfc3339(),
         }
     }
 }

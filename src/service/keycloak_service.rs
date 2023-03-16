@@ -2,15 +2,14 @@ use crate::config::config::Config;
 use crate::error::http_response_error::{MapHttpResponseError, MapToBasicResult};
 use crate::util::types::{BasicResult, WebResult};
 use keycloak::types::{
-    ClientRepresentation,
-    RealmRepresentation, RoleRepresentation, UserRepresentation,
+    ClientRepresentation, RealmRepresentation, RoleRepresentation, UserRepresentation,
 };
 use keycloak::{KeycloakAdmin, KeycloakAdminToken};
 use log::debug;
 use reqwest::Client;
+use serde::Deserialize;
 use std::cmp::min;
 use std::sync::Arc;
-use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 struct KeycloakCertificate {
@@ -132,15 +131,21 @@ impl KeycloakService {
     }
 
     pub async fn get_realm_public_key(&self) -> BasicResult<String> {
-        debug!("{:?}", self.client
-            .get(format!(
-                "{}/realms/{}/protocol/openid-connect/certs",
-                self.url, self.realm
-            ))
-            .send()
-            .await?.json::<KeycloakCertificates>().await?);
+        debug!(
+            "{:?}",
+            self.client
+                .get(format!(
+                    "{}/realms/{}/protocol/openid-connect/certs",
+                    self.url, self.realm
+                ))
+                .send()
+                .await?
+                .json::<KeycloakCertificates>()
+                .await?
+        );
 
-        let key = self.client
+        let key = self
+            .client
             .get(format!(
                 "{}/realms/{}/protocol/openid-connect/certs",
                 self.url, self.realm
@@ -161,20 +166,20 @@ impl KeycloakService {
             .clone();
 
         /*let key = certificates.first()
-            .ok_or("No public key found in keycloak realm".to_string())?;*/
+        .ok_or("No public key found in keycloak realm".to_string())?;*/
 
         /*let key = self
-            .admin
-            .realm_keys_get(self.realm.as_str())
-            .await
-            .map_err(|e| e.to_string())?
-            .keys
-            .ok_or("No keys found in keycloak realm".to_string())?
-            .into_iter()
-            .find(|k| k.use_ == Some(KeysMetadataRepresentationKeyMetadataRepresentationUse::Sig))
-            .ok_or("No signing key found in keycloak realm".to_string())?
-            .public_key
-            .ok_or("No public key found in keycloak realm".to_string())?;*/
+        .admin
+        .realm_keys_get(self.realm.as_str())
+        .await
+        .map_err(|e| e.to_string())?
+        .keys
+        .ok_or("No keys found in keycloak realm".to_string())?
+        .into_iter()
+        .find(|k| k.use_ == Some(KeysMetadataRepresentationKeyMetadataRepresentationUse::Sig))
+        .ok_or("No signing key found in keycloak realm".to_string())?
+        .public_key
+        .ok_or("No public key found in keycloak realm".to_string())?;*/
 
         let mut lines = vec!["-----BEGIN PUBLIC KEY-----"];
         for i in (0..key.len()).step_by(64) {

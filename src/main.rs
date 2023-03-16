@@ -9,7 +9,9 @@ mod repository;
 mod service;
 mod util;
 
-use crate::controller::{certificate, client_controller, common, swagger, user_controller};
+use crate::controller::{
+    certificate, client_controller, common, signing_request_controller, swagger, user_controller,
+};
 use crate::error::http_response_error::MapHttpResponseError;
 use crate::middleware::keycloak_middleware;
 use crate::mk_certs::mk_request;
@@ -26,7 +28,6 @@ use actix_web::get;
 use actix_web::web::{scope, Json};
 use actix_web::{middleware as actix_middleware, web, App, HttpServer};
 use config::app_state::AppState;
-use keycloak::types::UserRepresentation;
 use log::{debug, info};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Logger, Root};
@@ -125,6 +126,7 @@ async fn main() -> io::Result<()> {
             .service(certificate::register())
             .module(user_controller::module)
             .module(client_controller::module)
+            .module(signing_request_controller::module)
             .module(common::module);
 
         App::new()

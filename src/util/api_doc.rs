@@ -16,11 +16,14 @@ use utoipa::{Modify, OpenApi};
         crate::controller::user_controller::by_name,
         crate::controller::client_controller::create,
         crate::controller::client_controller::list,
+        crate::controller::client_controller::by_id,
         crate::controller::client_controller::delete,
+        crate::controller::signing_request_controller::by_client_id,
+        crate::controller::signing_request_controller::get_all,
         crate::generate_client
     ),
     components(
-        schemas(crate::model::signing_request::SigningRequest, ),
+        schemas(crate::model::signing_request::SigningRequest),
         schemas(crate::model::error_dto::ErrorDto),
         schemas(crate::model::health_info_dto::HealthInfoDto),
         schemas(
@@ -31,13 +34,15 @@ use utoipa::{Modify, OpenApi};
             crate::model::client_dto::ClientDto,
             crate::model::create_client_dto::CreateClientDto
         ),
-        schemas(crate::ClientCert)
+        schemas(crate::ClientCert),
+        schemas(crate::model::signing_request_dto::SigningRequestDto),
     ),
     tags(
         (name = "Certificates", description = "Certificate endpoints"),
         (name = "Common", description = "Common endpoints"),
         (name = "Users", description = "User endpoints"),
-        (name = "Clients", description = "Client endpoints")
+        (name = "Clients", description = "Client endpoints"),
+        (name = "Signing requests", description = "Signing Request endpoints")
     ),
     info(
         title = "Certificate Authority API",

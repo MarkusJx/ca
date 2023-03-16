@@ -7,7 +7,6 @@ use actix_web::{http, web, Error, FromRequest, HttpMessage, HttpRequest};
 use futures_util::future::LocalBoxFuture;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use std::future::{ready, Ready};
-use log::info;
 
 pub struct Jwt;
 
