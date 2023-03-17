@@ -1,0 +1,17 @@
+[package]
+name = "ca-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.11.14", features = ["json", "stream", "native-tls"] }
+openssl = { version = "0.10", features = ["vendored"] }
+serde = { version = "1.0.130", features = ["derive"] }
+log = "0.4"
+log4rs = "1.2.0"
+dotenv = "0.15.0"
+envconfig = "0.10.0"
+tokio = { version = "1.26.0", features = ["rt", "macros", "rt-multi-thread"] }
+futures = "0.3.27"
+jsonwebtoken = "8.2.0"
+shared = { path = "../shared" }
