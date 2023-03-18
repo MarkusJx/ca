@@ -2,16 +2,21 @@ use crate::config::app_state::AppState;
 use crate::entity::{client, user};
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::jwt_middleware::JwtMiddleware;
+use crate::middleware::keycloak_roles::KeycloakRoles;
 use actix_web::dev::Payload;
 use actix_web::{web, Error, FromRequest};
 use actix_web_middleware_keycloak_auth::StandardKeycloakClaims;
 use futures_util::future::LocalBoxFuture;
 
-pub struct KeycloakUserClaims {
+pub struct KeycloakUserClaims<R: KeycloakRoles> {
     pub user: user::Model,
+    _roles: std::marker::PhantomData<R>,
 }
 
-impl FromRequest for KeycloakUserClaims {
+impl<R> FromRequest for KeycloakUserClaims<R>
+where
+    R: KeycloakRoles,
+{
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
@@ -27,6 +32,18 @@ impl FromRequest for KeycloakUserClaims {
                 StandardKeycloakClaims::from_request(&req, &mut Payload::None).await?;
             let user_id = claims.sub.to_string();
 
+            if !R::roles_match(
+                &claims
+                    .realm_access
+                    .as_ref()
+                    .ok_or(HttpResponseError::internal_error(Some(
+                        "Failed to get user roles",
+                    )))?
+                    .roles,
+            ) {
+                return Err(HttpResponseError::unauthorized(Some("User not authorized")).into());
+            }
+
             Ok(KeycloakUserClaims {
                 user: data
                     .user_service
@@ -34,6 +51,7 @@ impl FromRequest for KeycloakUserClaims {
                     .await
                     .map_internal_error(Some("Failed to find user"))?
                     .ok_or(HttpResponseError::unauthorized(Some("User not found")))?,
+                _roles: std::marker::PhantomData,
             })
         })
     }

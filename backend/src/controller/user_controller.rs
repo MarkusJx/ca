@@ -1,6 +1,9 @@
 use crate::config::app_state::AppState;
 use crate::entity::user;
 use crate::error::http_response_error::HttpResponseError;
+use crate::middleware::extractors::KeycloakUserClaims;
+use crate::middleware::keycloak_middleware;
+use crate::middleware::keycloak_roles::AdminRole;
 use crate::model::create_user_dto::CreateUserDto;
 use crate::model::user_dto::UserDto;
 use crate::register_module;
@@ -42,12 +45,16 @@ struct DeleteQuery {
         (status = 424, description = "Failed dependency", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
+    security(
+        ("oauth2" = [])
+    )
 )]
-#[post("/user")]
+#[post("/user", wrap = "keycloak_middleware::Keycloak")]
 async fn create(
     user: Json<CreateUserDto>,
     data: web::Data<AppState>,
-) -> Result<impl Responder, HttpResponseError> {
+    _claims: KeycloakUserClaims<AdminRole>,
+) -> WebResult<Json<UserDto>> {
     if user.name.len() < 3 || user.password.len() < 3 {
         return Err(HttpResponseError::bad_request(Some(
             "The username and password must be at least 3 characters long",
@@ -66,7 +73,7 @@ async fn create(
         .await?;
 
     let kc_user = kc_users.first();
-    let kc_user = if let Some(kc_user) = kc_user {
+    let mut kc_user = if let Some(kc_user) = kc_user {
         if !kc_user.username.is_some() || kc_user.username.as_ref().unwrap() != user.name.as_str() {
             return Err(HttpResponseError::bad_request(Some(
                 "The username and name of the user do not match",
@@ -92,6 +99,7 @@ async fn create(
                     type_: Some("password".to_string()),
                     ..Default::default()
                 }]),
+                realm_roles: user.roles.clone(),
                 ..Default::default()
             })
             .await?;
@@ -108,15 +116,29 @@ async fn create(
             })?
     };
 
+    let kc_user_id = kc_user
+        .id
+        .clone()
+        .ok_or(HttpResponseError::internal_error(Some(
+            "Failed to get the external id of the user",
+        )))?;
+
+    if let Some(roles) = user.roles.as_ref() {
+        if !roles.is_empty() {
+            debug!("Adding roles to user: {:?}", roles);
+            data.keycloak_service
+                .add_roles_to_user(&kc_user_id, roles.clone())
+                .await?;
+
+            kc_user.realm_roles = Some(roles.clone());
+        }
+    }
+
     let model = data
         .user_service
         .insert(user::ActiveModel {
             name: ActiveValue::set(user.name.clone()),
-            external_id: ActiveValue::set(Some(kc_user.id.clone().ok_or(
-                HttpResponseError::internal_error(Some(
-                    "Failed to get the external id of the user",
-                )),
-            )?)),
+            external_id: ActiveValue::set(Some(kc_user_id)),
             ..Default::default()
         })
         .await?;
@@ -135,11 +157,15 @@ async fn create(
         (status = 424, description = "Failed dependency", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
+    security(
+        ("oauth2" = [])
+    )
 )]
-#[get("/user/list")]
+#[get("/user/list", wrap = "keycloak_middleware::Keycloak")]
 async fn list(
     data: web::Data<AppState>,
     query: Query<UserQuery>,
+    _claims: KeycloakUserClaims<AdminRole>,
 ) -> Result<impl Responder, HttpResponseError> {
     async fn map_user(
         model: user::Model,
@@ -187,12 +213,16 @@ async fn list(
         (status = 424, description = "Failed dependency", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
+    security(
+        ("oauth2" = [])
+    )
 )]
-#[get("/user/{id}")]
+#[get("/user/{id}", wrap = "keycloak_middleware::Keycloak")]
 async fn get(
     id: web::Path<String>,
     data: web::Data<AppState>,
     query: Query<UserQuery>,
+    _claims: KeycloakUserClaims<AdminRole>,
 ) -> Result<impl Responder, HttpResponseError> {
     let model = data
         .user_service
@@ -224,12 +254,16 @@ async fn get(
         (status = 424, description = "Failed dependency", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
+    security(
+        ("oauth2" = [])
+    )
 )]
-#[get("/user/by-name/{name}")]
+#[get("/user/by-name/{name}", wrap = "keycloak_middleware::Keycloak")]
 async fn by_name(
     name: web::Path<String>,
     data: web::Data<AppState>,
     query: Query<UserQuery>,
+    _claims: KeycloakUserClaims<AdminRole>,
 ) -> Result<impl Responder, HttpResponseError> {
     let model = data
         .user_service
@@ -262,12 +296,16 @@ async fn by_name(
         (status = 424, description = "Failed dependency", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
+    security(
+        ("oauth2" = [])
+    )
 )]
-#[delete("/user/{id}")]
+#[delete("/user/{id}", wrap = "keycloak_middleware::Keycloak")]
 async fn delete(
     id: web::Path<String>,
     data: web::Data<AppState>,
     query: Query<DeleteQuery>,
+    _claims: KeycloakUserClaims<AdminRole>,
 ) -> Result<impl Responder, HttpResponseError> {
     let user = data
         .user_service

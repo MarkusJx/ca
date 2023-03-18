@@ -1,0 +1,62 @@
+{
+  "name": "ca-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "lint": "prettier --plugin-search-dir . --check .",
+    "format": "prettier --plugin-search-dir . --write .",
+    "apiclient": "orval --config orval.config.cjs",
+    "prepare": "npm run smui-theme-light && npm run smui-theme-dark",
+    "smui-theme-light": "smui-theme compile src/theme/build/smui.css -i src/theme",
+    "smui-theme-dark": "smui-theme compile src/theme/build/smui-dark.css -i src/theme/dark"
+  },
+  "devDependencies": {
+    "@material/typography": "^14.0.0",
+    "@smui/button": "^7.0.0-beta.0",
+    "@smui/checkbox": "^7.0.0-beta.0",
+    "@smui/common": "^7.0.0-beta.0",
+    "@smui/data-table": "^7.0.0-beta.0",
+    "@smui/dialog": "^7.0.0-beta.0",
+    "@smui/drawer": "^7.0.0-beta.0",
+    "@smui/form-field": "^7.0.0-beta.0",
+    "@smui/icon-button": "^7.0.0-beta.0",
+    "@smui/layout-grid": "^7.0.0-beta.0",
+    "@smui/linear-progress": "^7.0.0-beta.0",
+    "@smui/list": "^7.0.0-beta.0",
+    "@smui/textfield": "^7.0.0-beta.0",
+    "@smui/tooltip": "^7.0.0-beta.0",
+    "@smui/top-app-bar": "^7.0.0-beta.0",
+    "@sveltejs/adapter-auto": "^2.0.0",
+    "@sveltejs/kit": "^1.5.0",
+    "@tanstack/svelte-query": "^4.27.0",
+    "axios": "^1.3.4",
+    "dotenv": "^16.0.3",
+    "orval": "^6.12.1",
+    "prettier": "^2.8.0",
+    "prettier-plugin-svelte": "^2.8.1",
+    "smui-theme": "^7.0.0-beta.0",
+    "svelte": "^3.54.0",
+    "svelte-check": "^3.0.1",
+    "svelte-french-toast": "^1.0.4-beta.0",
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.3",
+    "vite": "^4.0.0"
+  },
+  "type": "module",
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5"
+  },
+  "dependencies": {
+    "keycloak-js": "^21.0.1",
+    "svelte-material-ui": "^7.0.0-beta.0"
+  }
+}

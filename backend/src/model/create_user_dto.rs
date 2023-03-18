@@ -10,4 +10,5 @@ pub struct CreateUserDto {
     #[serde(rename = "lastName")]
     pub last_name: Option<String>,
     pub password: String,
+    pub roles: Option<Vec<String>>,
 }

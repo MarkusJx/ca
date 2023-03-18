@@ -50,6 +50,10 @@ impl ActiveModelBehavior for ActiveModel {
             self.active = ActiveValue::Set(true);
             self.id = ActiveValue::Set(id.into());
             self.created_at = ActiveValue::Set(Utc::now().into());
+
+            if self.external_id.is_not_set() || self.external_id.as_ref().is_none() {
+                return Err(DbErr::Custom("External ID is required".to_string()));
+            }
         }
 
         if !self.active.as_ref() {

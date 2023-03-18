@@ -24,11 +24,12 @@ use crate::service::user_service::UserService;
 use crate::util::api_doc::ApiDoc;
 use crate::util::traits::map_error_to_io_error::MapErrorToIoError;
 use crate::util::traits::register_module::RegisterModule;
+use actix_cors::Cors;
 use actix_web::get;
 use actix_web::web::{scope, Json};
 use actix_web::{middleware as actix_middleware, web, App, HttpServer};
 use config::app_state::AppState;
-use log::{debug, info};
+use log::info;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Logger, Root};
 use log4rs::Config;
@@ -104,10 +105,14 @@ async fn main() -> io::Result<()> {
 
     info!("Connecting to keycloak");
     let keycloak_service = KeycloakService::new(&config).await.map_to_io_error()?;
+    let user_service = UserService::new(db.clone());
 
     if config.keycloak_init_realm {
         info!("Initializing keycloak realm");
-        keycloak_service.init_realm().await.map_to_io_error()?;
+        keycloak_service
+            .init_realm(&user_service)
+            .await
+            .map_to_io_error()?;
     }
 
     info!("Setting keycloak certificate");
@@ -119,11 +124,6 @@ async fn main() -> io::Result<()> {
     )
     .map_to_io_error()?;
 
-    debug!(
-        "{:?}",
-        keycloak_service.get_client_by_name("test").await.unwrap()
-    );
-
     info!("Starting http server");
     HttpServer::new(move || {
         let scope = scope("/api/v1")
@@ -133,12 +133,17 @@ async fn main() -> io::Result<()> {
             .module(signing_request_controller::module)
             .module(common::module);
 
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_header()
+            .allow_any_method();
+
         App::new()
             .app_data(web::Data::new(AppState {
                 config: config.clone(),
                 keycloak_service: keycloak_service.clone(),
                 client_service: ClientService::new(db.clone()),
-                user_service: UserService::new(db.clone()),
+                user_service: user_service.clone(),
                 signing_request_service: SigningRequestService::new(db.clone()),
                 token_service: TokenService::new(db.clone()),
             }))
@@ -146,6 +151,7 @@ async fn main() -> io::Result<()> {
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/schema.json", ApiDoc::openapi()),
             )
             .wrap(actix_middleware::Logger::default())
+            .wrap(cors)
             .service(generate_client)
             .service(swagger::get_swagger_ui)
             .service(scope)

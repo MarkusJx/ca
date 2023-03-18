@@ -36,6 +36,10 @@ pub struct Config {
     pub keycloak_default_email_verified: bool,
     #[envconfig(from = "KEYCLOAK_PASSWORDS_TEMPORARY", default = "false")]
     pub keycloak_passwords_temporary: bool,
+    #[envconfig(from = "ADMIN_USER", default = "admin")]
+    pub admin_user: String,
+    #[envconfig(from = "ADMIN_PASSWORD", default = "admin")]
+    pub admin_password: String,
 }
 
 impl Config {

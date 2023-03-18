@@ -2,6 +2,7 @@ use crate::config::app_state::AppState;
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::extractors::KeycloakUserClaims;
 use crate::middleware::keycloak_middleware;
+use crate::middleware::keycloak_roles::NoRoles;
 use crate::register_module;
 use crate::util::traits::from_model::FromModel;
 use crate::util::types::WebResult;
@@ -34,7 +35,7 @@ use uuid::Uuid;
 async fn by_client_id(
     data: web::Data<AppState>,
     id: web::Path<String>,
-    claims: KeycloakUserClaims,
+    claims: KeycloakUserClaims<NoRoles>,
 ) -> WebResult<Json<Vec<SigningRequestDto>>> {
     let client_id = Uuid::from_str(&id).map_bad_request(Some("Invalid client id supplied"))?;
     let client = data
@@ -77,7 +78,7 @@ async fn by_client_id(
 #[get("/signing-request", wrap = "keycloak_middleware::Keycloak")]
 async fn get_all(
     data: web::Data<AppState>,
-    claims: KeycloakUserClaims,
+    claims: KeycloakUserClaims<NoRoles>,
 ) -> WebResult<Json<Vec<SigningRequestDto>>> {
     Ok(Json(
         data.signing_request_service

@@ -11,8 +11,10 @@ pub struct ErrorDto {
     /// The error as string
     #[schema(example = "Internal Server Error")]
     pub error: String,
-    /// The error message
+    /// The error message.
+    /// Only returned in debug mode.
     #[schema(example = "Something went wrong")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
 
@@ -20,8 +22,11 @@ impl From<HttpResponseError> for ErrorDto {
     fn from(error: HttpResponseError) -> Self {
         Self {
             code: error.status_code().as_u16(),
-            error: format!("{}", error.error),
+            error: error.error.to_string(),
+            #[cfg(debug_assertions)]
             message: error.message,
+            #[cfg(not(debug_assertions))]
+            message: None,
         }
     }
 }

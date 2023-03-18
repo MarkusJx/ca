@@ -26,6 +26,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-cors"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b340e9cfa5b08690aae90fb61beb44e9b06f44fe3d0f93781aaa58cfba86245e"
+dependencies = [
+ "actix-utils",
+ "actix-web",
+ "derive_more",
+ "futures-util",
+ "log",
+ "once_cell",
+ "smallvec",
+]
+
+[[package]]
 name = "actix-http"
 version = "3.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -509,8 +524,10 @@ dependencies = [
 name = "ca-backend"
 version = "0.1.0"
 dependencies = [
+ "actix-cors",
  "actix-web",
  "actix-web-middleware-keycloak-auth",
+ "async-trait",
  "chrono",
  "derive_more",
  "dotenv",
@@ -1328,9 +1345,9 @@ dependencies = [
 
 [[package]]
 name = "keycloak"
-version = "21.0.100"
+version = "21.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f85cac4ffb1c777cefc079c4b4401ca8e43813f17e68610e08de42666a41111"
+checksum = "dbae1aaaebc74880ada00249aa1e7075d6dd1da15e57c7c60de1058f650cc4f0"
 dependencies = [
  "async-trait",
  "reqwest",

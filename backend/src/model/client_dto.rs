@@ -44,4 +44,22 @@ impl ClientDto {
             updated_at: model.updated_at.to_rfc3339(),
         }
     }
+
+    pub fn from_model_with_token(
+        model: client::Model,
+        token: token::Model,
+        jwt_token: String,
+    ) -> Self {
+        Self {
+            id: model.id.to_string(),
+            name: model.name,
+            user_id: model.user_id.to_string(),
+            token: Some(jwt_token),
+            token_hash: token.token_hash,
+            active: model.active,
+            valid_until: model.valid_until.to_rfc3339(),
+            created_at: model.created_at.to_rfc3339(),
+            updated_at: model.updated_at.to_rfc3339(),
+        }
+    }
 }

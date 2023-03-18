@@ -4,6 +4,7 @@ use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;
 use actix_web::{error, HttpResponse};
 use derive_more::Display;
+use keycloak::KeycloakError;
 use log::error;
 use shared::util::types::BasicResult;
 use std::fmt::Display;
@@ -120,6 +121,27 @@ where
         self.map_err(|e| {
             error!("Unauthorized: {}", e);
             HttpResponseError::unauthorized(message).into()
+        })
+    }
+}
+
+pub trait MapKeycloakError<T> {
+    fn map_keycloak_error(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+}
+
+impl<T> MapKeycloakError<T> for Result<T, KeycloakError> {
+    fn map_keycloak_error(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+        self.map_err(|e| {
+            match e {
+                KeycloakError::HttpFailure { status, body, text } => {
+                    error!("Keycloak error: {} {:?} {}", status, body, text);
+                }
+                KeycloakError::ReqwestFailure(e) => {
+                    error!("Keycloak error: {}", e);
+                }
+            }
+
+            HttpResponseError::failed_dependency(message).into()
         })
     }
 }

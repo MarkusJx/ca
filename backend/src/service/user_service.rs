@@ -5,6 +5,7 @@ use crate::util::types::WebResult;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DeleteResult};
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct UserService(DatabaseConnection);
 
 impl UserService {
