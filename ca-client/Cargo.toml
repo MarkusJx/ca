@@ -14,4 +14,6 @@ envconfig = "0.10.0"
 tokio = { version = "1.26.0", features = ["rt", "macros", "rt-multi-thread"] }
 futures = "0.3.27"
 jsonwebtoken = "8.2.0"
+rouille = "3.6.1"
+derive_more = "0.99.17"
 shared = { path = "../shared" }

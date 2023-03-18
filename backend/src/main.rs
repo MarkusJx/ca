@@ -19,6 +19,7 @@ use crate::repository::database;
 use crate::service::client_service::ClientService;
 use crate::service::keycloak_service::KeycloakService;
 use crate::service::signing_request_service::SigningRequestService;
+use crate::service::token_service::TokenService;
 use crate::service::user_service::UserService;
 use crate::util::api_doc::ApiDoc;
 use crate::util::traits::map_error_to_io_error::MapErrorToIoError;
@@ -139,6 +140,7 @@ async fn main() -> io::Result<()> {
                 client_service: ClientService::new(db.clone()),
                 user_service: UserService::new(db.clone()),
                 signing_request_service: SigningRequestService::new(db.clone()),
+                token_service: TokenService::new(db.clone()),
             }))
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/schema.json", ApiDoc::openapi()),

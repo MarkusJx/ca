@@ -1,9 +1,8 @@
-use crate::entity::client;
-use crate::util::traits::from_model::FromModel;
+use crate::entity::{client, token};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ClientDto {
     /// The client id
     pub id: String,
@@ -31,14 +30,14 @@ pub struct ClientDto {
     pub updated_at: String,
 }
 
-impl FromModel<client::Model> for ClientDto {
-    fn from_model(model: client::Model) -> Self {
+impl ClientDto {
+    pub fn from_model(model: client::Model, token: token::Model) -> Self {
         Self {
             id: model.id.to_string(),
             name: model.name,
             user_id: model.user_id.to_string(),
             token: None,
-            token_hash: model.token_hash,
+            token_hash: token.token_hash,
             active: model.active,
             valid_until: model.valid_until.to_rfc3339(),
             created_at: model.created_at.to_rfc3339(),

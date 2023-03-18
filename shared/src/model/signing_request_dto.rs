@@ -10,4 +10,8 @@ pub struct SigningRequestDto {
     pub issued_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub certificate: Option<String>,
+    #[serde(rename = "serialNumber")]
+    pub serial_number: String,
+    #[serde(rename = "subjectName")]
+    pub subject_name: String,
 }

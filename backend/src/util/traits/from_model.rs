@@ -12,6 +12,8 @@ impl FromModel<signing_request::Model> for SigningRequestDto {
             hash: model.hash,
             issued_at: model.issued_at.to_rfc3339(),
             certificate: None,
+            serial_number: model.serial_number,
+            subject_name: model.subject_name,
         }
     }
 }

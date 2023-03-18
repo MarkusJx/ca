@@ -1,4 +1,5 @@
 use crate::config::Config;
+use openssl::asn1::Asn1Time;
 use openssl::ec::{EcGroup, EcKey};
 use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
@@ -15,12 +16,15 @@ pub struct Certificate {
 }
 
 impl Certificate {
-    pub fn get_cert_expiration(&self) -> Option<String> {
-        self.cert.as_ref().map(|c| c.not_after().to_string())
-    }
+    pub fn expires_in_secs(&self) -> BasicResult<Option<u64>> {
+        let now = Asn1Time::days_from_now(0)?;
+        let now = now.as_ref().to_owned();
 
-    pub fn has_certificate(&self) -> bool {
-        self.cert.is_some()
+        if let Some(c) = &self.cert {
+            Ok(Some(c.not_after().diff(&now)?.secs as u64))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn set_certificate(&mut self, cert: X509) {

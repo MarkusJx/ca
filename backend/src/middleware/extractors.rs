@@ -57,10 +57,18 @@ impl FromRequest for JwtClientClaims {
                     )))?;
             let jwt = JwtMiddleware::from_request(&req, &mut Payload::None).await?;
 
+            let client_id = data
+                .token_service
+                .find_by_id(&jwt.id, false)
+                .await
+                .map_internal_error(Some("Failed to find token by id"))?
+                .ok_or(HttpResponseError::unauthorized(Some("Token not found")))?
+                .client_id;
+
             Ok(JwtClientClaims {
                 client: data
                     .client_service
-                    .find_by_id(&jwt.id, false)
+                    .find_by_id(&client_id, false)
                     .await
                     .map_internal_error(Some("Failed to find client"))?
                     .ok_or(HttpResponseError::unauthorized(Some("Client not found")))?,

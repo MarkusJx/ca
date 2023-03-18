@@ -1,14 +1,23 @@
+#![allow(unreachable_code)]
 use crate::api::Api;
 use crate::certificate::Certificate;
+use crate::certificate_renewer::CertificateRenewer;
 use crate::config::Config;
 use ::log::{debug, info};
+use shared::model::health_info_dto::HealthInfoDto;
 use shared::util::types::BasicResult;
+
+#[macro_use]
+extern crate rouille;
 
 mod api;
 mod certificate;
+mod certificate_renewer;
 mod config;
 mod log;
 mod timed_call;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[tokio::main]
 async fn main() -> BasicResult<()> {
@@ -23,7 +32,7 @@ async fn main() -> BasicResult<()> {
     api.check_api().await?;
 
     info!("Trying to load certificates");
-    let mut cert = match Certificate::load("certs".into(), config.passphrase.as_ref()).await {
+    let cert = match Certificate::load("certs".into(), config.passphrase.as_ref()).await {
         Ok(cert) => {
             info!("Loaded certificates");
             cert
@@ -40,21 +49,21 @@ async fn main() -> BasicResult<()> {
         }
     };
 
-    info!("Checking token");
-    jsonwebtoken::decode_header(&config.token)?;
+    let mut renewer = CertificateRenewer::new(api, config, cert);
+    renewer.renew_periodically();
 
-    if !cert.has_certificate() {
-        info!("Requesting certificate");
-        let csr = cert.get_signing_request(&config)?;
-        let signed = api.sign_certificate(csr, config.alt_names()).await?;
-        info!("Storing certificate");
-        cert.set_certificate(signed);
-        cert.store("certs".into(), config.passphrase.as_ref())
-            .await?;
-        info!("Certificate stored");
-    }
-
-    info!("Certificate expiration: {:?}", cert.get_cert_expiration());
-
-    Ok(())
+    info!("Starting http server");
+    rouille::start_server("0.0.0.0:8091", move |request| {
+        router!(request,
+            (GET) (/api/v1/health) => {
+                rouille::Response::json(&HealthInfoDto {
+                    version: VERSION.to_string(),
+                    keycloak_version: None,
+                    status: renewer.get_last_error().map(|e| e.to_string()).unwrap_or("OK".into()),
+                    ok: renewer.get_last_error().is_none()
+                })
+            },
+            _ => rouille::Response::empty_404()
+        )
+    });
 }

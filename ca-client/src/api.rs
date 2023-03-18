@@ -39,7 +39,10 @@ impl Api {
 
         let data = res.result?;
         info!("Connected to API: {}", data.version);
-        info!("Keycloak version: {}", data.keycloak_version);
+        info!(
+            "Keycloak version: {}",
+            data.keycloak_version.unwrap_or("unknown".into())
+        );
         info!("API response time: {:?}", res.duration);
 
         Ok(())
@@ -67,8 +70,8 @@ impl Api {
             .await
             .map_err(|e| Box::new(e))?;
 
+        debug!("Certificate received: {:?}", res);
         if let Some(cert) = res.certificate {
-            debug!("Certificate received");
             X509::from_pem(cert.as_bytes()).map_err(|e| e.into())
         } else {
             Err("No certificate received".into())

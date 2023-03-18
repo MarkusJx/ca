@@ -2,7 +2,7 @@ use crate::entity::client;
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::repository::client_repository::ClientRepository;
 use crate::util::types::WebResult;
-use sea_orm::{DatabaseConnection, DeleteResult};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DeleteResult};
 use uuid::Uuid;
 
 pub struct ClientService(DatabaseConnection);
@@ -16,6 +16,13 @@ impl ClientService {
         ClientRepository::insert(&self.0, model)
             .await
             .map_internal_error(Some("Failed to create client"))
+    }
+
+    pub async fn update(&self, model: client::ActiveModel) -> WebResult<client::Model> {
+        model
+            .update(&self.0)
+            .await
+            .map_internal_error(Some("Failed to update client"))
     }
 
     pub async fn find_by_id(

@@ -22,10 +22,9 @@ async fn health_check(data: web::Data<AppState>) -> WebResult<Json<HealthInfoDto
 
     Ok(Json(HealthInfoDto {
         version: VERSION.to_string(),
-        keycloak_version: info
-            .and_then(|i| i.system_info)
-            .and_then(|i| i.version)
-            .unwrap_or("Not found".into()),
+        keycloak_version: info.and_then(|i| i.system_info).and_then(|i| i.version),
+        status: "OK".into(),
+        ok: true,
     }))
 }
 

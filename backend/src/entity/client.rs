@@ -1,5 +1,6 @@
 use crate::repository::client_repository::ClientRepository;
 use crate::repository::signing_request_repository::SigningRequestRepository;
+use crate::repository::token_repository::TokenRepository;
 use crate::util::types::DbResult;
 use async_trait::async_trait;
 use chrono::Utc;
@@ -16,7 +17,6 @@ pub struct Model {
     pub user_id: Uuid,
     #[sea_orm(unique)]
     pub name: String,
-    pub token_hash: String,
     pub active: bool,
     pub valid_until: DateTimeWithTimeZone,
     pub created_at: DateTimeWithTimeZone,
@@ -34,6 +34,8 @@ pub enum Relation {
     User,
     #[sea_orm(has_many = "super::signing_request::Entity")]
     SigningRequest,
+    #[sea_orm(has_many = "super::token::Entity")]
+    Token,
 }
 
 impl Related<super::signing_request::Entity> for Entity {
@@ -45,6 +47,12 @@ impl Related<super::signing_request::Entity> for Entity {
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::User.def()
+    }
+}
+
+impl Related<super::token::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Token.def()
     }
 }
 
@@ -78,6 +86,8 @@ impl ActiveModelBehavior for ActiveModel {
             .await
             .into_iter()
             .collect::<DbResult<Vec<_>>>()?;
+
+            TokenRepository::deactivate_all_by_client(db, self.id.as_ref()).await?;
         }
 
         self.updated_at = ActiveValue::Set(Utc::now().into());
@@ -97,6 +107,8 @@ impl ActiveModelBehavior for ActiveModel {
         .await
         .into_iter()
         .collect::<DbResult<Vec<_>>>()?;
+
+        TokenRepository::delete_all_by_client(db, self.id.as_ref()).await?;
 
         Ok(self)
     }

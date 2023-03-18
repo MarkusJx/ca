@@ -15,6 +15,7 @@ use utoipa::{Modify, OpenApi};
         crate::controller::user_controller::delete,
         crate::controller::user_controller::by_name,
         crate::controller::client_controller::create,
+        crate::controller::client_controller::regenerate_token,
         crate::controller::client_controller::list,
         crate::controller::client_controller::by_id,
         crate::controller::client_controller::delete,

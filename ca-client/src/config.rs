@@ -26,6 +26,8 @@ pub struct Config {
     pub cert_email: Option<String>,
     #[envconfig(from = "ALT_NAMES")]
     pub alt_names: Option<String>,
+    #[envconfig(from = "RENEW_THRESHOLD_DAYS", default = "1")]
+    pub renew_threshold_days: u32,
 }
 
 impl Config {
