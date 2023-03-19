@@ -44,11 +44,11 @@ impl ClientService {
         Ok(id)
     }
 
-    /*pub async fn find_by_name(&self, name: &str) -> WebResult<Option<client::Model>> {
+    pub async fn find_by_name(&self, name: &str) -> WebResult<Option<client::Model>> {
         ClientRepository::find_by_name(&self.0, name)
             .await
             .map_internal_error(Some("Failed to find client by name"))
-    }*/
+    }
 
     pub async fn find_by_id_string_unwrap(
         &self,

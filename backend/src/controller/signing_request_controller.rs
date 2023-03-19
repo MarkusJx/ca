@@ -17,6 +17,7 @@ use uuid::Uuid;
     get,
     tag = "Signing requests",
     context_path = "/api/v1",
+    operation_id = "getSigningRequestsByClientId",
     params(
         ("id", description = "The id of the client")
     ),
@@ -65,6 +66,7 @@ async fn by_client_id(
     get,
     tag = "Signing requests",
     context_path = "/api/v1",
+    operation_id = "getSigningRequests",
     responses(
         (status = 200, description = "Ok", body = Vec<SigningRequestDto>),
         (status = 400, description = "Bad request", body = ErrorDto),

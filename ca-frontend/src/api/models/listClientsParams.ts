@@ -6,9 +6,9 @@
  * OpenAPI spec version: 0.0.1
  */
 
-export type ByNameParams = {
+export type ListClientsParams = {
   /**
- * Whether to include inactive users in the result.
+ * Whether to include inactive clients in the result.
 Defaults to false.
  */
   includeInactive?: boolean;

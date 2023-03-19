@@ -10,5 +10,7 @@ pub struct CreateUserDto {
     #[serde(rename = "lastName")]
     pub last_name: Option<String>,
     pub password: String,
+    #[serde(rename = "isPasswordTemporary")]
+    pub is_password_temporary: Option<bool>,
     pub roles: Option<Vec<String>>,
 }

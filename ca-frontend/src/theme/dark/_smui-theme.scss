@@ -23,3 +23,8 @@ a {
 a:visited {
   color: color.scale(#40b3ff, $lightness: -35%);
 }
+
+:root {
+  --date-picker-background: #1b1e27;
+  --date-picker-foreground: #f7f7f7;
+}

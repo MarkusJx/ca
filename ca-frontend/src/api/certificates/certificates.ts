@@ -30,7 +30,7 @@ type SecondParameter<T extends (...args: any) => any> = T extends (
  * Get the server's CA certificate
  * @summary Get the server's CA certificate
  */
-export const caCertificate = (
+export const getCaCertificate = (
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ) => {
@@ -40,19 +40,19 @@ export const caCertificate = (
   );
 };
 
-export const getCaCertificateQueryKey = () => [`/api/v1/certificate/ca`];
+export const getGetCaCertificateQueryKey = () => [`/api/v1/certificate/ca`];
 
-export type CaCertificateQueryResult = NonNullable<
-  Awaited<ReturnType<typeof caCertificate>>
+export type GetCaCertificateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCaCertificate>>
 >;
-export type CaCertificateQueryError = ErrorType<ErrorDto>;
+export type GetCaCertificateQueryError = ErrorType<ErrorDto>;
 
-export const createCaCertificate = <
-  TData = Awaited<ReturnType<typeof caCertificate>>,
+export const createGetCaCertificate = <
+  TData = Awaited<ReturnType<typeof getCaCertificate>>,
   TError = ErrorType<ErrorDto>
 >(options?: {
   query?: CreateQueryOptions<
-    Awaited<ReturnType<typeof caCertificate>>,
+    Awaited<ReturnType<typeof getCaCertificate>>,
     TError,
     TData
   >;
@@ -60,14 +60,14 @@ export const createCaCertificate = <
 }): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getCaCertificateQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetCaCertificateQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof caCertificate>>> = ({
-    signal,
-  }) => caCertificate(requestOptions, signal);
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCaCertificate>>
+  > = ({ signal }) => getCaCertificate(requestOptions, signal);
 
   const query = createQuery<
-    Awaited<ReturnType<typeof caCertificate>>,
+    Awaited<ReturnType<typeof getCaCertificate>>,
     TError,
     TData
   >({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
@@ -85,7 +85,7 @@ export const createCaCertificate = <
 using the server's CA certificate
  * @summary Sign a certificate signing request
  */
-export const sign = (
+export const signCertificate = (
   newSigningRequestDto: NewSigningRequestDto,
   options?: SecondParameter<typeof customInstance>
 ) => {
@@ -100,16 +100,18 @@ export const sign = (
   );
 };
 
-export type SignMutationResult = NonNullable<Awaited<ReturnType<typeof sign>>>;
-export type SignMutationBody = NewSigningRequestDto;
-export type SignMutationError = ErrorType<ErrorDto>;
+export type SignCertificateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signCertificate>>
+>;
+export type SignCertificateMutationBody = NewSigningRequestDto;
+export type SignCertificateMutationError = ErrorType<ErrorDto>;
 
-export const createSign = <
+export const createSignCertificate = <
   TError = ErrorType<ErrorDto>,
   TContext = unknown
 >(options?: {
   mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof sign>>,
+    Awaited<ReturnType<typeof signCertificate>>,
     TError,
     { data: NewSigningRequestDto },
     TContext
@@ -119,16 +121,16 @@ export const createSign = <
   const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof sign>>,
+    Awaited<ReturnType<typeof signCertificate>>,
     { data: NewSigningRequestDto }
   > = (props) => {
     const { data } = props ?? {};
 
-    return sign(data, requestOptions);
+    return signCertificate(data, requestOptions);
   };
 
   return createMutation<
-    Awaited<ReturnType<typeof sign>>,
+    Awaited<ReturnType<typeof signCertificate>>,
     TError,
     { data: NewSigningRequestDto },
     TContext

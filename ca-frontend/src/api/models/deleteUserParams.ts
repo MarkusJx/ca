@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.0.1
  */
 
-export type GetParams = {
+export type DeleteUserParams = {
   /**
- * Whether to include inactive users in the result.
+ * Whether to delete the user rather than just deactivating it.
 Defaults to false.
  */
-  includeInactive?: boolean;
+  deleteInDatabase?: boolean;
 };

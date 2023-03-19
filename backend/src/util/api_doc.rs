@@ -21,6 +21,7 @@ use utoipa::{Modify, OpenApi};
         crate::controller::client_controller::delete,
         crate::controller::signing_request_controller::by_client_id,
         crate::controller::signing_request_controller::get_all,
+        crate::controller::admin_controller::list_roles,
         crate::generate_client
     ),
     components(
@@ -43,7 +44,8 @@ use utoipa::{Modify, OpenApi};
         (name = "Common", description = "Common endpoints"),
         (name = "Users", description = "User endpoints"),
         (name = "Clients", description = "Client endpoints"),
-        (name = "Signing requests", description = "Signing Request endpoints")
+        (name = "Signing requests", description = "Signing Request endpoints"),
+        (name = "Admin", description = "Admin endpoints"),
     ),
     info(
         title = "Certificate Authority API",

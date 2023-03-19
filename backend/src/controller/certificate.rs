@@ -38,6 +38,7 @@ fn get_ca_cert() -> io::Result<(X509, PKey<Private>)> {
     get,
     context_path = "/api/v1/certificate",
     tag = "Certificates",
+    operation_id = "getCaCertificate",
     responses(
         (status = 200, description = "Ok", body = String),
         (status = 500, description = "Internal server error", body = ErrorDto),
@@ -55,6 +56,7 @@ async fn ca_certificate() -> Result<String, HttpResponseError> {
     post,
     context_path = "/api/v1/certificate",
     tag = "Certificates",
+    operation_id = "signCertificate",
     request_body = NewSigningRequestDto,
     responses(
         (status = 200, description = "Ok", body = String),

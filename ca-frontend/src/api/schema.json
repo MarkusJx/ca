@@ -3,33 +3,67 @@
   "info": {
     "title": "Certificate Authority API",
     "description": "A simple API for managing certificates",
-    "license": {
-      "name": "MIT",
-      "url": "https://opensource.org/licenses/MIT"
-    },
+    "license": { "name": "MIT", "url": "https://opensource.org/licenses/MIT" },
     "version": "0.0.1"
   },
   "paths": {
-    "/api/v1/certificate/ca": {
+    "/api/v1/admin/roles": {
       "get": {
-        "tags": ["Certificates"],
-        "summary": "Get the server's CA certificate",
-        "description": "Get the server's CA certificate",
-        "operationId": "ca_certificate",
+        "tags": ["Admin"],
+        "operationId": "listRoles",
         "responses": {
           "200": {
             "description": "Ok",
             "content": {
-              "text/plain": { "schema": { "type": "string" } }
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
+              }
+            }
+          },
+          "424": {
+            "description": "Failed dependency",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
+              }
             }
           },
           "500": {
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
+              }
+            }
+          }
+        },
+        "security": [{ "oauth2": [] }]
+      }
+    },
+    "/api/v1/certificate/ca": {
+      "get": {
+        "tags": ["Certificates"],
+        "summary": "Get the server's CA certificate",
+        "description": "Get the server's CA certificate",
+        "operationId": "getCaCertificate",
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": { "text/plain": { "schema": { "type": "string" } } }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -41,13 +75,11 @@
         "tags": ["Certificates"],
         "summary": "Sign a certificate signing request",
         "description": "Sign a certificate signing request\nusing the server's CA certificate",
-        "operationId": "sign",
+        "operationId": "signCertificate",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewSigningRequestDto"
-              }
+              "schema": { "$ref": "#/components/schemas/NewSigningRequestDto" }
             }
           },
           "required": true
@@ -55,17 +87,13 @@
         "responses": {
           "200": {
             "description": "Ok",
-            "content": {
-              "text/plain": { "schema": { "type": "string" } }
-            }
+            "content": { "text/plain": { "schema": { "type": "string" } } }
           },
           "400": {
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -73,9 +101,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -83,9 +109,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -96,13 +120,11 @@
     "/api/v1/client": {
       "post": {
         "tags": ["Clients"],
-        "operationId": "create",
+        "operationId": "createClient",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateClientDto"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateClientDto" }
             }
           },
           "required": true
@@ -112,9 +134,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClientDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ClientDto" }
               }
             }
           },
@@ -122,9 +142,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -132,9 +150,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -142,9 +158,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -152,9 +166,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -165,12 +177,12 @@
     "/api/v1/client/list": {
       "get": {
         "tags": ["Clients"],
-        "operationId": "list",
+        "operationId": "listClients",
         "parameters": [
           {
             "name": "includeInactive",
             "in": "query",
-            "description": "Whether to include clients users in the result.\nDefaults to false.",
+            "description": "Whether to include inactive clients in the result.\nDefaults to false.",
             "required": false,
             "schema": { "type": "boolean" }
           }
@@ -182,9 +194,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ClientDto"
-                  }
+                  "items": { "$ref": "#/components/schemas/ClientDto" }
                 }
               }
             }
@@ -193,9 +203,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -203,9 +211,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -213,9 +219,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -223,9 +227,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -236,7 +238,7 @@
     "/api/v1/client/regenerate/{id}": {
       "put": {
         "tags": ["Clients"],
-        "operationId": "regenerate_token",
+        "operationId": "regenerateClientToken",
         "parameters": [
           {
             "name": "id",
@@ -249,9 +251,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateClientDto"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateClientDto" }
             }
           },
           "required": true
@@ -261,9 +261,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClientDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ClientDto" }
               }
             }
           },
@@ -271,9 +269,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -281,9 +277,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -291,9 +285,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -301,9 +293,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -314,7 +304,7 @@
     "/api/v1/client/{id}": {
       "get": {
         "tags": ["Clients"],
-        "operationId": "by_id",
+        "operationId": "getClientById",
         "parameters": [
           {
             "name": "id",
@@ -326,7 +316,7 @@
           {
             "name": "includeInactive",
             "in": "query",
-            "description": "Whether to include clients users in the result.\nDefaults to false.",
+            "description": "Whether to include inactive clients in the result.\nDefaults to false.",
             "required": false,
             "schema": { "type": "boolean" }
           }
@@ -336,9 +326,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClientDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ClientDto" }
               }
             }
           },
@@ -346,9 +334,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -356,9 +342,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -366,9 +350,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -376,9 +358,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -387,7 +367,7 @@
       },
       "delete": {
         "tags": ["Clients"],
-        "operationId": "delete",
+        "operationId": "deleteClient",
         "parameters": [
           {
             "name": "id",
@@ -410,9 +390,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -420,9 +398,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -430,9 +406,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -440,9 +414,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -453,15 +425,13 @@
     "/api/v1/health": {
       "get": {
         "tags": ["Common"],
-        "operationId": "health_check",
+        "operationId": "healthCheck",
         "responses": {
           "200": {
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthInfoDto"
-                }
+                "schema": { "$ref": "#/components/schemas/HealthInfoDto" }
               }
             }
           },
@@ -469,9 +439,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -481,7 +449,7 @@
     "/api/v1/signing-request": {
       "get": {
         "tags": ["Signing requests"],
-        "operationId": "get_all",
+        "operationId": "getSigningRequests",
         "responses": {
           "200": {
             "description": "Ok",
@@ -489,9 +457,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SigningRequestDto"
-                  }
+                  "items": { "$ref": "#/components/schemas/SigningRequestDto" }
                 }
               }
             }
@@ -500,9 +466,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -510,9 +474,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -520,9 +482,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -533,7 +493,7 @@
     "/api/v1/signing-request/{id}": {
       "get": {
         "tags": ["Signing requests"],
-        "operationId": "by_client_id",
+        "operationId": "getSigningRequestsByClientId",
         "parameters": [
           {
             "name": "id",
@@ -550,9 +510,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SigningRequestDto"
-                  }
+                  "items": { "$ref": "#/components/schemas/SigningRequestDto" }
                 }
               }
             }
@@ -561,9 +519,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -571,9 +527,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -581,9 +535,7 @@
             "description": "Not found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -591,9 +543,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -604,13 +554,11 @@
     "/api/v1/user": {
       "post": {
         "tags": ["Users"],
-        "operationId": "create",
+        "operationId": "createUser",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserDto"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateUserDto" }
             }
           },
           "required": true
@@ -620,9 +568,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserDto"
-                }
+                "schema": { "$ref": "#/components/schemas/UserDto" }
               }
             }
           },
@@ -630,9 +576,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -640,9 +584,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -650,9 +592,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -660,9 +600,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -673,7 +611,7 @@
     "/api/v1/user/by-name/{name}": {
       "get": {
         "tags": ["Users"],
-        "operationId": "by_name",
+        "operationId": "getUserByName",
         "parameters": [
           {
             "name": "name",
@@ -695,9 +633,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserDto"
-                }
+                "schema": { "$ref": "#/components/schemas/UserDto" }
               }
             }
           },
@@ -705,9 +641,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -715,9 +649,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -725,9 +657,7 @@
             "description": "Not found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -735,9 +665,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -745,9 +673,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -758,7 +684,7 @@
     "/api/v1/user/list": {
       "get": {
         "tags": ["Users"],
-        "operationId": "list",
+        "operationId": "listUsers",
         "parameters": [
           {
             "name": "includeInactive",
@@ -775,9 +701,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserDto"
-                  }
+                  "items": { "$ref": "#/components/schemas/UserDto" }
                 }
               }
             }
@@ -786,9 +710,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -796,9 +718,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -806,9 +726,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -819,7 +737,7 @@
     "/api/v1/user/{id}": {
       "get": {
         "tags": ["Users"],
-        "operationId": "get",
+        "operationId": "getUserById",
         "parameters": [
           {
             "name": "id",
@@ -841,9 +759,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserDto"
-                }
+                "schema": { "$ref": "#/components/schemas/UserDto" }
               }
             }
           },
@@ -851,9 +767,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -861,9 +775,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -871,9 +783,7 @@
             "description": "Not found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -881,9 +791,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -891,9 +799,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -902,7 +808,7 @@
       },
       "delete": {
         "tags": ["Users"],
-        "operationId": "delete",
+        "operationId": "deleteUser",
         "parameters": [
           {
             "name": "id",
@@ -925,9 +831,7 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -935,9 +839,7 @@
             "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -945,9 +847,7 @@
             "description": "Not found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -955,9 +855,7 @@
             "description": "Failed dependency",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           },
@@ -965,9 +863,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -984,9 +880,7 @@
             "description": "Ok",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClientCert"
-                }
+                "schema": { "$ref": "#/components/schemas/ClientCert" }
               }
             }
           },
@@ -994,9 +888,7 @@
             "description": "Internal server error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorDto"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorDto" }
               }
             }
           }
@@ -1036,10 +928,7 @@
             "description": "The time the client was created"
           },
           "id": { "type": "string", "description": "The client id" },
-          "name": {
-            "type": "string",
-            "description": "The client name"
-          },
+          "name": { "type": "string", "description": "The client name" },
           "token": {
             "type": "string",
             "description": "The client token. Only returned when creating a new client.",
@@ -1072,10 +961,7 @@
             "description": "The client name\nOnly required when creating a new client",
             "nullable": true
           },
-          "validUntil": {
-            "type": "string",
-            "example": "2025-01-01T00:00:00Z"
-          }
+          "validUntil": { "type": "string", "example": "2025-01-01T00:00:00Z" }
         }
       },
       "CreateUserDto": {
@@ -1086,11 +972,13 @@
           "firstName",
           "lastName",
           "password",
+          "isPasswordTemporary",
           "roles"
         ],
         "properties": {
           "email": { "type": "string", "nullable": true },
           "firstName": { "type": "string", "nullable": true },
+          "isPasswordTemporary": { "type": "boolean", "nullable": true },
           "lastName": { "type": "string", "nullable": true },
           "name": { "type": "string" },
           "password": { "type": "string" },
@@ -1214,11 +1102,7 @@
       }
     },
     "securitySchemes": {
-      "jwt": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization"
-      },
+      "jwt": { "type": "apiKey", "in": "header", "name": "Authorization" },
       "oauth2": {
         "type": "oauth2",
         "flows": {
@@ -1235,9 +1119,7 @@
     { "name": "Common", "description": "Common endpoints" },
     { "name": "Users", "description": "User endpoints" },
     { "name": "Clients", "description": "Client endpoints" },
-    {
-      "name": "Signing requests",
-      "description": "Signing Request endpoints"
-    }
+    { "name": "Signing requests", "description": "Signing Request endpoints" },
+    { "name": "Admin", "description": "Admin endpoints" }
   ]
 }

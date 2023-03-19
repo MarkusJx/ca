@@ -38,6 +38,7 @@ struct DeleteQuery {
     tag = "Users",
     context_path = "/api/v1",
     request_body = CreateUserDto,
+    operation_id = "createUser",
     responses(
         (status = 200, description = "Ok", body = UserDto),
         (status = 400, description = "Bad request", body = ErrorDto),
@@ -95,7 +96,7 @@ async fn create(
                 ),
                 credentials: Some(vec![CredentialRepresentation {
                     value: Some(user.password.clone()),
-                    temporary: Some(data.config.keycloak_passwords_temporary),
+                    temporary: Some(user.is_password_temporary.unwrap_or(false)),
                     type_: Some("password".to_string()),
                     ..Default::default()
                 }]),
@@ -150,6 +151,7 @@ async fn create(
     get,
     tag = "Users",
     context_path = "/api/v1",
+    operation_id = "listUsers",
     params(UserQuery),
     responses(
         (status = 200, description = "Ok", body = Vec<UserDto>),
@@ -166,7 +168,7 @@ async fn list(
     data: web::Data<AppState>,
     query: Query<UserQuery>,
     _claims: KeycloakUserClaims<AdminRole>,
-) -> Result<impl Responder, HttpResponseError> {
+) -> WebResult<Json<Vec<UserDto>>> {
     async fn map_user(
         model: user::Model,
         data: &web::Data<AppState>,
@@ -201,6 +203,7 @@ async fn list(
     get,
     tag = "Users",
     context_path = "/api/v1",
+    operation_id = "getUserById",
     params(
         ("id", description = "Id of the user to find"),
         UserQuery
@@ -223,7 +226,7 @@ async fn get(
     data: web::Data<AppState>,
     query: Query<UserQuery>,
     _claims: KeycloakUserClaims<AdminRole>,
-) -> Result<impl Responder, HttpResponseError> {
+) -> WebResult<Json<UserDto>> {
     let model = data
         .user_service
         .find_by_id_string_unwrap(&id.into_inner(), query.include_inactive.unwrap_or(false))
@@ -242,6 +245,7 @@ async fn get(
     get,
     tag = "Users",
     context_path = "/api/v1",
+    operation_id = "getUserByName",
     params(
         ("name", description = "Name of the user to find"),
         UserQuery
@@ -264,7 +268,7 @@ async fn by_name(
     data: web::Data<AppState>,
     query: Query<UserQuery>,
     _claims: KeycloakUserClaims<AdminRole>,
-) -> Result<impl Responder, HttpResponseError> {
+) -> WebResult<Json<UserDto>> {
     let model = data
         .user_service
         .find_by_name(&name.into_inner(), query.include_inactive.unwrap_or(false))
@@ -284,6 +288,7 @@ async fn by_name(
     delete,
     tag = "Users",
     context_path = "/api/v1",
+    operation_id = "deleteUser",
     params(
         ("id", description = "Id of the user to delete"),
         DeleteQuery
@@ -305,12 +310,18 @@ async fn delete(
     id: web::Path<String>,
     data: web::Data<AppState>,
     query: Query<DeleteQuery>,
-    _claims: KeycloakUserClaims<AdminRole>,
-) -> Result<impl Responder, HttpResponseError> {
+    claims: KeycloakUserClaims<AdminRole>,
+) -> WebResult<impl Responder> {
     let user = data
         .user_service
         .find_by_id_string_unwrap(&id.into_inner(), true)
         .await?;
+
+    if claims.user.id == user.id {
+        return Err(HttpResponseError::bad_request(Some(
+            "Cannot delete yourself",
+        )));
+    }
 
     data.keycloak_service
         .delete_user(user.external_id.as_ref().unwrap())

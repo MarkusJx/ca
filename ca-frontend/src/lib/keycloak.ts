@@ -17,9 +17,9 @@ export class KeycloakAdapter {
       onLoad: 'login-required',
     });
 
-    /*if (!auth) {
+    if (!auth) {
       window.location.reload();
-    }*/
+    }
 
     return auth ? this.kc : null;
   }

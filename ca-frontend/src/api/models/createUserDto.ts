@@ -9,6 +9,7 @@
 export interface CreateUserDto {
   email: string | null;
   firstName: string | null;
+  isPasswordTemporary: boolean | null;
   lastName: string | null;
   name: string;
   password: string;

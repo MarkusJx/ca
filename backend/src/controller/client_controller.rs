@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 #[derive(Deserialize, Debug, IntoParams)]
 pub struct ClientQuery {
-    /// Whether to include clients users in the result.
+    /// Whether to include inactive clients in the result.
     /// Defaults to false.
     #[serde(rename = "includeInactive")]
     pub include_inactive: Option<bool>,
@@ -92,6 +92,7 @@ async fn create_token_entity(
     tag = "Clients",
     context_path = "/api/v1",
     request_body = CreateClientDto,
+    operation_id = "createClient",
     responses(
         (status = 200, description = "Ok", body = ClientDto),
         (status = 400, description = "Bad request", body = ErrorDto),
@@ -111,15 +112,30 @@ async fn create(
 ) -> WebResult<Json<ClientDto>> {
     debug!("Creating client for user {}", claims.user.id);
 
+    let client_name = client
+        .name
+        .clone()
+        .ok_or(HttpResponseError::bad_request(Some(
+            "Client name must be supplied",
+        )))?;
+
+    data.client_service
+        .find_by_name(&client_name)
+        .await?
+        .map(|_| {
+            Err(HttpResponseError::bad_request(Some(
+                "A client with that name already exists",
+            )))
+        })
+        .unwrap_or(Ok(()))?;
+
     let (expiry_date, token_id, token, token_hash) = create_token(&client, &data).await?;
 
     let client = data
         .client_service
         .insert(client::ActiveModel {
             id: ActiveValue::Set(data.client_service.generate_id().await?),
-            name: ActiveValue::Set(client.name.clone().ok_or(HttpResponseError::bad_request(
-                Some("Client name must be supplied"),
-            ))?),
+            name: ActiveValue::Set(client_name.clone()),
             user_id: ActiveValue::Set(claims.user.id),
             valid_until: ActiveValue::Set(expiry_date),
             ..Default::default()
@@ -139,6 +155,7 @@ async fn create(
     tag = "Clients",
     context_path = "/api/v1",
     request_body = CreateClientDto,
+    operation_id = "regenerateClientToken",
     params(
         ("id", description = "Id of the client to update")
     ),
@@ -192,6 +209,7 @@ async fn regenerate_token(
     get,
     tag = "Clients",
     context_path = "/api/v1",
+    operation_id = "getClientById",
     params(
         ("id", description = "Client id"),
         ClientQuery
@@ -241,6 +259,7 @@ async fn by_id(
     get,
     tag = "Clients",
     context_path = "/api/v1",
+    operation_id = "listClients",
     params(ClientQuery),
     responses(
         (status = 200, description = "Ok", body = Vec<ClientDto>),
@@ -283,6 +302,7 @@ async fn list(
     delete,
     tag = "Clients",
     context_path = "/api/v1",
+    operation_id = "deleteClient",
     params(
         ("id", description = "Id of the client to delete"),
         DeleteQuery

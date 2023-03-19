@@ -11,6 +11,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
     get,
     tag = "Common",
     context_path = "/api/v1",
+    operation_id = "healthCheck",
     responses(
         (status = 200, description = "Ok", body = HealthInfoDto),
         (status = 500, description = "Internal server error", body = ErrorDto),

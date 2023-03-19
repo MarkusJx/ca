@@ -38,8 +38,8 @@
         <Item href="/user" activated={route === '/user'}>
           <Text>Users</Text>
         </Item>
-        <Item>
-          <Text>Item 2</Text>
+        <Item href="/client" activated={route === '/client'}>
+          <Text>Clients</Text>
         </Item>
         <Item>
           <Text>Item 3</Text>
@@ -55,7 +55,7 @@
           <IconButton class="material-icons" on:click={() => (open = !open)}
             >menu
           </IconButton>
-          <Title>Flex Static</Title>
+          <Title>Certificate authority</Title>
         </Section>
         <Section align="end" toolbar>
           <IconButton class="material-icons" aria-label="Download"
@@ -76,4 +76,4 @@
   </AppContent>
 </div>
 
-<Toaster />
+<Toaster toastOptions={{ style: 'font-family: Roboto' }} />

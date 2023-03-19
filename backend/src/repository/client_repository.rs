@@ -16,7 +16,7 @@ impl ClientRepository {
         model.insert(db).await.map_err(|e| e.into())
     }
 
-    /*pub async fn find_by_name<C: ConnectionTrait>(
+    pub async fn find_by_name<C: ConnectionTrait>(
         db: &C,
         name: &str,
     ) -> DbResult<Option<client::Model>> {
@@ -25,7 +25,7 @@ impl ClientRepository {
             .one(db)
             .await
             .map_err(|e| e.into())
-    }*/
+    }
 
     pub async fn find_by_id<C: ConnectionTrait>(
         db: &C,

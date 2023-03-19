@@ -18,10 +18,10 @@ import type {
   UserDto,
   ErrorDto,
   CreateUserDto,
-  ListParams,
-  _DeleteParams,
-  ByNameParams,
-  GetParams,
+  GetUserByNameParams,
+  ListUsersParams,
+  GetUserByIdParams,
+  DeleteUserParams,
 } from '.././models';
 import { customInstance } from '.././axios';
 import type { ErrorType } from '.././axios';
@@ -34,7 +34,7 @@ type SecondParameter<T extends (...args: any) => any> = T extends (
   ? P
   : never;
 
-export const create = (
+export const createUser = (
   createUserDto: CreateUserDto,
   options?: SecondParameter<typeof customInstance>
 ) => {
@@ -49,18 +49,18 @@ export const create = (
   );
 };
 
-export type CreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof create>>
+export type CreateUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createUser>>
 >;
-export type CreateMutationBody = CreateUserDto;
-export type CreateMutationError = ErrorType<ErrorDto>;
+export type CreateUserMutationBody = CreateUserDto;
+export type CreateUserMutationError = ErrorType<ErrorDto>;
 
-export const createCreate = <
+export const createCreateUser = <
   TError = ErrorType<ErrorDto>,
   TContext = unknown
 >(options?: {
   mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof create>>,
+    Awaited<ReturnType<typeof createUser>>,
     TError,
     { data: CreateUserDto },
     TContext
@@ -70,119 +70,24 @@ export const createCreate = <
   const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof create>>,
+    Awaited<ReturnType<typeof createUser>>,
     { data: CreateUserDto }
   > = (props) => {
     const { data } = props ?? {};
 
-    return create(data, requestOptions);
+    return createUser(data, requestOptions);
   };
 
   return createMutation<
-    Awaited<ReturnType<typeof create>>,
+    Awaited<ReturnType<typeof createUser>>,
     TError,
     { data: CreateUserDto },
     TContext
   >(mutationFn, mutationOptions);
 };
-export const list = (
-  params?: ListParams,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal
-) => {
-  return customInstance<UserDto[]>(
-    { url: `/api/v1/user/list`, method: 'get', params, signal },
-    options
-  );
-};
-
-export const getListQueryKey = (params?: ListParams) => [
-  `/api/v1/user/list`,
-  ...(params ? [params] : []),
-];
-
-export type ListQueryResult = NonNullable<Awaited<ReturnType<typeof list>>>;
-export type ListQueryError = ErrorType<ErrorDto>;
-
-export const createList = <
-  TData = Awaited<ReturnType<typeof list>>,
-  TError = ErrorType<ErrorDto>
->(
-  params?: ListParams,
-  options?: {
-    query?: CreateQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>;
-    request?: SecondParameter<typeof customInstance>;
-  }
-): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListQueryKey(params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof list>>> = ({
-    signal,
-  }) => list(params, requestOptions, signal);
-
-  const query = createQuery<Awaited<ReturnType<typeof list>>, TError, TData>({
-    queryKey,
-    queryFn,
-    ...queryOptions,
-  }) as CreateQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryKey;
-
-  return query;
-};
-
-export const _delete = (
-  id: string,
-  params?: _DeleteParams,
-  options?: SecondParameter<typeof customInstance>
-) => {
-  return customInstance<void>(
-    { url: `/api/v1/user/${id}`, method: 'delete', params },
-    options
-  );
-};
-
-export type _DeleteMutationResult = NonNullable<
-  Awaited<ReturnType<typeof _delete>>
->;
-
-export type _DeleteMutationError = ErrorType<ErrorDto>;
-
-export const createDelete = <
-  TError = ErrorType<ErrorDto>,
-  TContext = unknown
->(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof _delete>>,
-    TError,
-    { id: string; params?: _DeleteParams },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof _delete>>,
-    { id: string; params?: _DeleteParams }
-  > = (props) => {
-    const { id, params } = props ?? {};
-
-    return _delete(id, params, requestOptions);
-  };
-
-  return createMutation<
-    Awaited<ReturnType<typeof _delete>>,
-    TError,
-    { id: string; params?: _DeleteParams },
-    TContext
-  >(mutationFn, mutationOptions);
-};
-export const byName = (
+export const getUserByName = (
   name: string,
-  params?: ByNameParams,
+  params?: GetUserByNameParams,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ) => {
@@ -192,23 +97,25 @@ export const byName = (
   );
 };
 
-export const getByNameQueryKey = (name: string, params?: ByNameParams) => [
-  `/api/v1/user/by-name/${name}`,
-  ...(params ? [params] : []),
-];
+export const getGetUserByNameQueryKey = (
+  name: string,
+  params?: GetUserByNameParams
+) => [`/api/v1/user/by-name/${name}`, ...(params ? [params] : [])];
 
-export type ByNameQueryResult = NonNullable<Awaited<ReturnType<typeof byName>>>;
-export type ByNameQueryError = ErrorType<ErrorDto>;
+export type GetUserByNameQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserByName>>
+>;
+export type GetUserByNameQueryError = ErrorType<ErrorDto>;
 
-export const createByName = <
-  TData = Awaited<ReturnType<typeof byName>>,
+export const createGetUserByName = <
+  TData = Awaited<ReturnType<typeof getUserByName>>,
   TError = ErrorType<ErrorDto>
 >(
   name: string,
-  params?: ByNameParams,
+  params?: GetUserByNameParams,
   options?: {
     query?: CreateQueryOptions<
-      Awaited<ReturnType<typeof byName>>,
+      Awaited<ReturnType<typeof getUserByName>>,
       TError,
       TData
     >;
@@ -217,13 +124,18 @@ export const createByName = <
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getByNameQueryKey(name, params);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetUserByNameQueryKey(name, params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof byName>>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserByName>>> = ({
     signal,
-  }) => byName(name, params, requestOptions, signal);
+  }) => getUserByName(name, params, requestOptions, signal);
 
-  const query = createQuery<Awaited<ReturnType<typeof byName>>, TError, TData>({
+  const query = createQuery<
+    Awaited<ReturnType<typeof getUserByName>>,
+    TError,
+    TData
+  >({
     queryKey,
     queryFn,
     enabled: !!name,
@@ -235,9 +147,66 @@ export const createByName = <
   return query;
 };
 
-export const get = (
+export const listUsers = (
+  params?: ListUsersParams,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+) => {
+  return customInstance<UserDto[]>(
+    { url: `/api/v1/user/list`, method: 'get', params, signal },
+    options
+  );
+};
+
+export const getListUsersQueryKey = (params?: ListUsersParams) => [
+  `/api/v1/user/list`,
+  ...(params ? [params] : []),
+];
+
+export type ListUsersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUsers>>
+>;
+export type ListUsersQueryError = ErrorType<ErrorDto>;
+
+export const createListUsers = <
+  TData = Awaited<ReturnType<typeof listUsers>>,
+  TError = ErrorType<ErrorDto>
+>(
+  params?: ListUsersParams,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof listUsers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  }
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUsersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUsers>>> = ({
+    signal,
+  }) => listUsers(params, requestOptions, signal);
+
+  const query = createQuery<
+    Awaited<ReturnType<typeof listUsers>>,
+    TError,
+    TData
+  >({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
+
+  query.queryKey = queryKey;
+
+  return query;
+};
+
+export const getUserById = (
   id: string,
-  params?: GetParams,
+  params?: GetUserByIdParams,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ) => {
@@ -247,41 +216,97 @@ export const get = (
   );
 };
 
-export const getGetQueryKey = (id: string, params?: GetParams) => [
-  `/api/v1/user/${id}`,
-  ...(params ? [params] : []),
-];
+export const getGetUserByIdQueryKey = (
+  id: string,
+  params?: GetUserByIdParams
+) => [`/api/v1/user/${id}`, ...(params ? [params] : [])];
 
-export type GetQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>;
-export type GetQueryError = ErrorType<ErrorDto>;
+export type GetUserByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserById>>
+>;
+export type GetUserByIdQueryError = ErrorType<ErrorDto>;
 
-export const createGet = <
-  TData = Awaited<ReturnType<typeof get>>,
+export const createGetUserById = <
+  TData = Awaited<ReturnType<typeof getUserById>>,
   TError = ErrorType<ErrorDto>
 >(
   id: string,
-  params?: GetParams,
+  params?: GetUserByIdParams,
   options?: {
-    query?: CreateQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>;
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof getUserById>>,
+      TError,
+      TData
+    >;
     request?: SecondParameter<typeof customInstance>;
   }
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetQueryKey(id, params);
+  const queryKey = queryOptions?.queryKey ?? getGetUserByIdQueryKey(id, params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserById>>> = ({
     signal,
-  }) => get(id, params, requestOptions, signal);
+  }) => getUserById(id, params, requestOptions, signal);
 
-  const query = createQuery<Awaited<ReturnType<typeof get>>, TError, TData>({
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  }) as CreateQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = createQuery<
+    Awaited<ReturnType<typeof getUserById>>,
+    TError,
+    TData
+  >({ queryKey, queryFn, enabled: !!id, ...queryOptions }) as CreateQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
 
   query.queryKey = queryKey;
 
   return query;
+};
+
+export const deleteUser = (
+  id: string,
+  params?: DeleteUserParams,
+  options?: SecondParameter<typeof customInstance>
+) => {
+  return customInstance<void>(
+    { url: `/api/v1/user/${id}`, method: 'delete', params },
+    options
+  );
+};
+
+export type DeleteUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteUser>>
+>;
+
+export type DeleteUserMutationError = ErrorType<ErrorDto>;
+
+export const createDeleteUser = <
+  TError = ErrorType<ErrorDto>,
+  TContext = unknown
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof deleteUser>>,
+    TError,
+    { id: string; params?: DeleteUserParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteUser>>,
+    { id: string; params?: DeleteUserParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return deleteUser(id, params, requestOptions);
+  };
+
+  return createMutation<
+    Awaited<ReturnType<typeof deleteUser>>,
+    TError,
+    { id: string; params?: DeleteUserParams },
+    TContext
+  >(mutationFn, mutationOptions);
 };

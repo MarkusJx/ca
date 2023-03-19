@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.0.1
  */
 
-export type ListParams = {
+export type GetUserByNameParams = {
   /**
  * Whether to include inactive users in the result.
 Defaults to false.

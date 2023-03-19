@@ -10,7 +10,8 @@ mod service;
 mod util;
 
 use crate::controller::{
-    certificate, client_controller, common, signing_request_controller, swagger, user_controller,
+    admin_controller, certificate, client_controller, common, signing_request_controller, swagger,
+    user_controller,
 };
 use crate::error::http_response_error::MapHttpResponseError;
 use crate::middleware::keycloak_middleware;
@@ -131,6 +132,7 @@ async fn main() -> io::Result<()> {
             .module(user_controller::module)
             .module(client_controller::module)
             .module(signing_request_controller::module)
+            .module(admin_controller::module)
             .module(common::module);
 
         let cors = Cors::default()

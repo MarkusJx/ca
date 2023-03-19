@@ -421,6 +421,20 @@ impl KeycloakService {
             .map_failed_dependency(Some("Failed to get user roles in keycloak"))
     }
 
+    pub async fn get_roles(&self) -> WebResult<Vec<String>> {
+        self.admin
+            .realm_roles_get(self.realm.as_str(), None, None, None, None)
+            .await
+            .map_failed_dependency(Some("Failed to get roles in keycloak"))?
+            .into_iter()
+            .map(|r| {
+                r.name.ok_or(HttpResponseError::failed_dependency(Some(
+                    "Failed to get role name",
+                )))
+            })
+            .collect::<WebResult<Vec<_>>>()
+    }
+
     /*pub async fn update_user(&self, id: &String, user: UserRepresentation) -> WebResult<()> {
         self.admin
             .realm_users_with_id_put(self.realm.as_str(), id.as_str(), user)

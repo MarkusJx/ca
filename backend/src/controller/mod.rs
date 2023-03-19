@@ -1,3 +1,4 @@
+pub mod admin_controller;
 pub mod certificate;
 pub mod client_controller;
 pub mod common;
