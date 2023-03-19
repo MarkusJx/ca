@@ -31,4 +31,8 @@ export class KeycloakAdapter {
   public static get token(): string | null {
     return this.kc?.token ?? null;
   }
+
+  public static logout(): void {
+    this.kc?.logout();
+  }
 }

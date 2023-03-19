@@ -18,7 +18,9 @@ import type {
   ClientDto,
   ErrorDto,
   CreateClientDto,
-  ByIdParams,
+  ListClientsParams,
+  GetClientByIdParams,
+  DeleteClientParams,
 } from '.././models';
 import { customInstance } from '.././axios';
 import type { ErrorType } from '.././axios';
@@ -31,7 +33,115 @@ type SecondParameter<T extends (...args: any) => any> = T extends (
   ? P
   : never;
 
-export const regenerateToken = (
+export const createClient = (
+  createClientDto: CreateClientDto,
+  options?: SecondParameter<typeof customInstance>
+) => {
+  return customInstance<ClientDto>(
+    {
+      url: `/api/v1/client`,
+      method: 'post',
+      headers: { 'Content-Type': 'application/json' },
+      data: createClientDto,
+    },
+    options
+  );
+};
+
+export type CreateClientMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createClient>>
+>;
+export type CreateClientMutationBody = CreateClientDto;
+export type CreateClientMutationError = ErrorType<ErrorDto>;
+
+export const createCreateClient = <
+  TError = ErrorType<ErrorDto>,
+  TContext = unknown
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof createClient>>,
+    TError,
+    { data: CreateClientDto },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createClient>>,
+    { data: CreateClientDto }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createClient(data, requestOptions);
+  };
+
+  return createMutation<
+    Awaited<ReturnType<typeof createClient>>,
+    TError,
+    { data: CreateClientDto },
+    TContext
+  >(mutationFn, mutationOptions);
+};
+export const listClients = (
+  params?: ListClientsParams,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+) => {
+  return customInstance<ClientDto[]>(
+    { url: `/api/v1/client/list`, method: 'get', params, signal },
+    options
+  );
+};
+
+export const getListClientsQueryKey = (params?: ListClientsParams) => [
+  `/api/v1/client/list`,
+  ...(params ? [params] : []),
+];
+
+export type ListClientsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClients>>
+>;
+export type ListClientsQueryError = ErrorType<ErrorDto>;
+
+export const createListClients = <
+  TData = Awaited<ReturnType<typeof listClients>>,
+  TError = ErrorType<ErrorDto>
+>(
+  params?: ListClientsParams,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof listClients>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  }
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClientsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClients>>> = ({
+    signal,
+  }) => listClients(params, requestOptions, signal);
+
+  const query = createQuery<
+    Awaited<ReturnType<typeof listClients>>,
+    TError,
+    TData
+  >({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
+
+  query.queryKey = queryKey;
+
+  return query;
+};
+
+export const regenerateClientToken = (
   id: string,
   createClientDto: CreateClientDto,
   options?: SecondParameter<typeof customInstance>
@@ -47,18 +157,18 @@ export const regenerateToken = (
   );
 };
 
-export type RegenerateTokenMutationResult = NonNullable<
-  Awaited<ReturnType<typeof regenerateToken>>
+export type RegenerateClientTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateClientToken>>
 >;
-export type RegenerateTokenMutationBody = CreateClientDto;
-export type RegenerateTokenMutationError = ErrorType<ErrorDto>;
+export type RegenerateClientTokenMutationBody = CreateClientDto;
+export type RegenerateClientTokenMutationError = ErrorType<ErrorDto>;
 
-export const createRegenerateToken = <
+export const createRegenerateClientToken = <
   TError = ErrorType<ErrorDto>,
   TContext = unknown
 >(options?: {
   mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof regenerateToken>>,
+    Awaited<ReturnType<typeof regenerateClientToken>>,
     TError,
     { id: string; data: CreateClientDto },
     TContext
@@ -68,24 +178,24 @@ export const createRegenerateToken = <
   const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof regenerateToken>>,
+    Awaited<ReturnType<typeof regenerateClientToken>>,
     { id: string; data: CreateClientDto }
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return regenerateToken(id, data, requestOptions);
+    return regenerateClientToken(id, data, requestOptions);
   };
 
   return createMutation<
-    Awaited<ReturnType<typeof regenerateToken>>,
+    Awaited<ReturnType<typeof regenerateClientToken>>,
     TError,
     { id: string; data: CreateClientDto },
     TContext
   >(mutationFn, mutationOptions);
 };
-export const byId = (
+export const getClientById = (
   id: string,
-  params?: ByIdParams,
+  params?: GetClientByIdParams,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ) => {
@@ -95,41 +205,98 @@ export const byId = (
   );
 };
 
-export const getByIdQueryKey = (id: string, params?: ByIdParams) => [
-  `/api/v1/client/${id}`,
-  ...(params ? [params] : []),
-];
+export const getGetClientByIdQueryKey = (
+  id: string,
+  params?: GetClientByIdParams
+) => [`/api/v1/client/${id}`, ...(params ? [params] : [])];
 
-export type ByIdQueryResult = NonNullable<Awaited<ReturnType<typeof byId>>>;
-export type ByIdQueryError = ErrorType<ErrorDto>;
+export type GetClientByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClientById>>
+>;
+export type GetClientByIdQueryError = ErrorType<ErrorDto>;
 
-export const createById = <
-  TData = Awaited<ReturnType<typeof byId>>,
+export const createGetClientById = <
+  TData = Awaited<ReturnType<typeof getClientById>>,
   TError = ErrorType<ErrorDto>
 >(
   id: string,
-  params?: ByIdParams,
+  params?: GetClientByIdParams,
   options?: {
-    query?: CreateQueryOptions<Awaited<ReturnType<typeof byId>>, TError, TData>;
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof getClientById>>,
+      TError,
+      TData
+    >;
     request?: SecondParameter<typeof customInstance>;
   }
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getByIdQueryKey(id, params);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetClientByIdQueryKey(id, params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof byId>>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClientById>>> = ({
     signal,
-  }) => byId(id, params, requestOptions, signal);
+  }) => getClientById(id, params, requestOptions, signal);
 
-  const query = createQuery<Awaited<ReturnType<typeof byId>>, TError, TData>({
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  }) as CreateQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = createQuery<
+    Awaited<ReturnType<typeof getClientById>>,
+    TError,
+    TData
+  >({ queryKey, queryFn, enabled: !!id, ...queryOptions }) as CreateQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
 
   query.queryKey = queryKey;
 
   return query;
+};
+
+export const deleteClient = (
+  id: string,
+  params?: DeleteClientParams,
+  options?: SecondParameter<typeof customInstance>
+) => {
+  return customInstance<void>(
+    { url: `/api/v1/client/${id}`, method: 'delete', params },
+    options
+  );
+};
+
+export type DeleteClientMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteClient>>
+>;
+
+export type DeleteClientMutationError = ErrorType<ErrorDto>;
+
+export const createDeleteClient = <
+  TError = ErrorType<ErrorDto>,
+  TContext = unknown
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof deleteClient>>,
+    TError,
+    { id: string; params?: DeleteClientParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteClient>>,
+    { id: string; params?: DeleteClientParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return deleteClient(id, params, requestOptions);
+  };
+
+  return createMutation<
+    Awaited<ReturnType<typeof deleteClient>>,
+    TError,
+    { id: string; params?: DeleteClientParams },
+    TContext
+  >(mutationFn, mutationOptions);
 };
