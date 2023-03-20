@@ -10,12 +10,15 @@
   import List, { Item, Text, Separator } from '@smui/list';
   import Tooltip, { Wrapper } from '@smui/tooltip';
   import Menu from '@smui/menu';
-  import { Toaster } from 'svelte-french-toast';
   import { page } from '$app/stores';
   import { KeycloakAdapter } from '$lib/keycloak.js';
 
   let open = false;
   let menu: Menu & { setOpen: (open: boolean) => void };
+
+  const logout = () => {
+    KeycloakAdapter.logout();
+  };
 
   const elements = [
     { id: '/home', name: 'Home', separator: true },
@@ -87,7 +90,7 @@
             </Wrapper>
             <Menu bind:this={menu}>
               <List>
-                <Item on:SMUI:action={() => KeycloakAdapter.logout()}>
+                <Item on:SMUI:action={logout}>
                   <Text>Logout</Text>
                 </Item>
               </List>
@@ -101,5 +104,3 @@
     </main>
   </AppContent>
 </div>
-
-<Toaster toastOptions={{ style: 'font-family: Roboto' }} />

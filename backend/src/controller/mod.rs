@@ -1,5 +1,5 @@
 pub mod admin_controller;
-pub mod certificate;
+pub mod certificate_controller;
 pub mod client_controller;
 pub mod common;
 pub mod signing_request_controller;

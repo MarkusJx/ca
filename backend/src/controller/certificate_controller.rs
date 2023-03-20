@@ -2,36 +2,18 @@ use crate::config::app_state::AppState;
 use crate::entity::signing_request;
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::extractors::JwtClientClaims;
-use crate::mk_certs::mk_ca_signed_cert;
+use crate::register_module;
+use crate::util::ca_certificate::CACertificate;
 use crate::util::traits::from_model::FromModel;
 use crate::util::types::WebResult;
-use crate::{mk_certs, register_module};
-use actix_web::web::Json;
-use actix_web::{get, post, web};
-use log::info;
+use actix_web::web::{Data, Json};
+use actix_web::{get, post};
 use openssl::hash::MessageDigest;
-use openssl::pkey::{PKey, Private};
-use openssl::x509::{X509Req, X509};
+use openssl::x509::X509Req;
 use sea_orm::{ActiveValue, TryIntoModel};
 use shared::model::new_signing_request_dto::NewSigningRequestDto;
 use shared::model::signing_request_dto::SigningRequestDto;
 use shared::util::traits::u8_vec_to_string::U8VecToString;
-use std::io;
-use std::sync::Mutex;
-
-static CA_CERT: Mutex<Option<(X509, PKey<Private>)>> = Mutex::new(None);
-
-fn get_ca_cert() -> io::Result<(X509, PKey<Private>)> {
-    let mut ca_cert = CA_CERT.lock().unwrap();
-    if ca_cert.is_none() {
-        info!("Generating CA cert");
-        *ca_cert = Some(mk_certs::mk_ca_cert()?);
-    } else {
-        info!("Using cached CA cert");
-    }
-
-    Ok(ca_cert.as_ref().unwrap().clone())
-}
 
 /// Get the server's CA certificate
 #[utoipa::path(
@@ -45,9 +27,13 @@ fn get_ca_cert() -> io::Result<(X509, PKey<Private>)> {
     ),
 )]
 #[get("/ca")]
-async fn ca_certificate() -> Result<String, HttpResponseError> {
-    let ca_cert = get_ca_cert().map_internal_error(None)?;
-    Ok(ca_cert.0.to_pem().map_internal_error(None)?.to_string())
+async fn ca_certificate(data: Data<AppState>) -> WebResult<String> {
+    Ok(data
+        .certificate_service
+        .get_certificate()
+        .await?
+        .public
+        .to_string())
 }
 
 /// Sign a certificate signing request
@@ -71,13 +57,19 @@ async fn ca_certificate() -> Result<String, HttpResponseError> {
 #[post("/sign")]
 async fn sign(
     request: Json<NewSigningRequestDto>,
-    data: web::Data<AppState>,
+    data: Data<AppState>,
     claims: JwtClientClaims,
 ) -> WebResult<Json<SigningRequestDto>> {
     let req = X509Req::from_pem(request.request.as_bytes()).map_internal_error(None)?;
-    let ca_cert = get_ca_cert().map_internal_error(None)?;
+    let ca_cert: CACertificate = data
+        .certificate_service
+        .get_certificate()
+        .await?
+        .try_into()
+        .map_internal_error(None)?;
 
-    let signed = mk_ca_signed_cert(&req, &ca_cert.0, &ca_cert.1, &request.alternative_names)
+    let signed = ca_cert
+        .sign_request(&req, &request.alternative_names)
         .map_internal_error(None)?;
 
     let req = data

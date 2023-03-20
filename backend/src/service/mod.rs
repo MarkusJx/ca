@@ -1,3 +1,4 @@
+pub mod certificate_service;
 pub mod client_service;
 pub mod keycloak_service;
 pub mod signing_request_service;

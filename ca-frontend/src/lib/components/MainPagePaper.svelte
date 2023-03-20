@@ -1,11 +1,15 @@
 <script lang="ts">
   import Paper, { Title, Content } from '@smui/paper';
   import Ripple from '@smui/ripple';
+  import { createEventDispatcher } from 'svelte';
 
   export let href: string | undefined = undefined;
   export let title: string;
 
-  const onClick = () => {
+  const dispatch = createEventDispatcher();
+
+  const onClick = (e: MouseEvent) => {
+    dispatch('click', e);
     if (href) {
       location.href = href;
     }
@@ -27,5 +31,6 @@
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    cursor: pointer;
   }
 </style>

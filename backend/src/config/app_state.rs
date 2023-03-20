@@ -1,4 +1,5 @@
 use crate::config::config::Config;
+use crate::service::certificate_service::CertificateService;
 use crate::service::client_service::ClientService;
 use crate::service::keycloak_service::KeycloakService;
 use crate::service::signing_request_service::SigningRequestService;
@@ -12,4 +13,5 @@ pub struct AppState {
     pub user_service: UserService,
     pub signing_request_service: SigningRequestService,
     pub token_service: TokenService,
+    pub certificate_service: CertificateService,
 }

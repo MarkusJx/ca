@@ -24,7 +24,6 @@ impl ClientRepository {
             .filter(client::Column::Name.eq(name))
             .one(db)
             .await
-            .map_err(|e| e.into())
     }
 
     pub async fn find_by_id<C: ConnectionTrait>(
@@ -37,7 +36,7 @@ impl ClientRepository {
             q = q.filter(client::Column::Active.eq(true));
         }
 
-        q.one(db).await.map_err(|e| e.into())
+        q.one(db).await
     }
 
     pub async fn find_all_by_user<C: ConnectionTrait>(
@@ -50,14 +49,14 @@ impl ClientRepository {
             q = q.filter(client::Column::Active.eq(true));
         }
 
-        q.all(db).await.map_err(|e| e.into())
+        q.all(db).await
     }
 
     pub async fn delete<C: ConnectionTrait>(
         db: &C,
         model: client::ActiveModel,
     ) -> DbResult<DeleteResult> {
-        model.delete(db).await.map_err(|e| e.into())
+        model.delete(db).await
     }
 
     pub async fn disable<C: ConnectionTrait>(
@@ -65,6 +64,6 @@ impl ClientRepository {
         mut model: client::ActiveModel,
     ) -> DbResult<client::ActiveModel> {
         model.active = ActiveValue::Set(false);
-        model.save(db).await.map_err(|e| e.into())
+        model.save(db).await
     }
 }

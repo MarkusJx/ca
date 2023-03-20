@@ -39,7 +39,7 @@ export class KeycloakAdapter {
     return this.kc?.hasRealmRole(role) ?? false;
   }
 
-  public static logout(): void {
-    this.kc?.logout();
+  public static async logout(): Promise<void> {
+    await this.kc?.logout();
   }
 }

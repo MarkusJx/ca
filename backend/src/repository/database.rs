@@ -1,5 +1,5 @@
 use crate::config::config::Config;
-use crate::entity::{client, signing_request, token, user};
+use crate::entity::{certificate, client, signing_request, token, user};
 use log::debug;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Schema};
 use std::error::Error;
@@ -55,11 +55,17 @@ pub async fn fill(db: &DatabaseConnection) -> Result<(), Box<dyn Error>> {
             .create_table_from_entity(token::Entity)
             .if_not_exists(),
     );
+    let certificate = builder.build(
+        schema
+            .create_table_from_entity(certificate::Entity)
+            .if_not_exists(),
+    );
 
     db.execute(user).await?;
     db.execute(client).await?;
     db.execute(signing_request).await?;
     db.execute(token).await?;
+    db.execute(certificate).await?;
 
     Ok(())
 }
