@@ -1,2 +1,4 @@
 .svelte-kit
 node_modules
+static/smui.css
+static/smui-dark.css

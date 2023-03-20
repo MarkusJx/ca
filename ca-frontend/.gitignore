@@ -6,4 +6,5 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-src/theme/build/*.css
+static/smui.css
+static/smui-dark.css

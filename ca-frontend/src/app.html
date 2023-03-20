@@ -21,10 +21,10 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css?family=Roboto+Mono"
     />
-    <link rel="stylesheet" href="/node_modules/svelte-material-ui/bare.css" />
+    <!--<link rel="stylesheet" href="/node_modules/svelte-material-ui/bare.css" />-->
 
     <!-- SMUI Styles -->
-    <link
+    <!--<link
       rel="stylesheet"
       href="/src/theme/build/smui.css"
       media="(prefers-color-scheme: light)"
@@ -32,6 +32,17 @@
     <link
       rel="stylesheet"
       href="/src/theme/build/smui-dark.css"
+      media="screen and (prefers-color-scheme: dark)"
+    />-->
+
+    <link
+      rel="stylesheet"
+      href="%sveltekit.assets%/smui.css"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="stylesheet"
+      href="%sveltekit.assets%/smui-dark.css"
       media="screen and (prefers-color-scheme: dark)"
     />
   </head>

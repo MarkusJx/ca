@@ -4,7 +4,7 @@ import { env } from './env';
 export class KeycloakAdapter {
   private static kc: Keycloak | null = null;
 
-  public static async init(): Promise<Keycloak | null> {
+  public static async init(requireLogin: boolean): Promise<Keycloak | null> {
     if (!this.kc) {
       this.kc = new Keycloak({
         url: env.VITE_KEYCLOAK_URL,
@@ -14,10 +14,13 @@ export class KeycloakAdapter {
     }
 
     const auth = await this.kc.init({
-      onLoad: 'login-required',
+      onLoad: requireLogin ? 'login-required' : 'check-sso',
+      checkLoginIframe: false,
+      silentCheckSsoRedirectUri:
+        window.location.origin + '/silent-check-sso.html',
     });
 
-    if (!auth) {
+    if (!auth && requireLogin) {
       window.location.reload();
     }
 
@@ -30,6 +33,10 @@ export class KeycloakAdapter {
 
   public static get token(): string | null {
     return this.kc?.token ?? null;
+  }
+
+  public static hasRole(role: string): boolean {
+    return this.kc?.hasRealmRole(role) ?? false;
   }
 
   public static logout(): void {
