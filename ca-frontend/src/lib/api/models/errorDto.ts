@@ -7,11 +7,11 @@
  */
 
 export interface ErrorDto {
-  /** The error code */
-  code: number;
-  /** The error as string */
-  error: string;
-  /** The error message.
+	/** The error code */
+	code: number;
+	/** The error as string */
+	error: string;
+	/** The error message.
 Only returned in debug mode. */
-  message?: string | null;
+	message?: string | null;
 }

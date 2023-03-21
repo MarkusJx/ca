@@ -38,6 +38,20 @@ pub struct Config {
     pub admin_user: String,
     #[envconfig(from = "ADMIN_PASSWORD", default = "admin")]
     pub admin_password: String,
+    #[envconfig(from = "CA_CERT_VALIDITY_DAYS", default = "365")]
+    pub ca_cert_validity_days: u32,
+    #[envconfig(from = "CA_CERT_COUNTRY", default = "DE")]
+    pub ca_cert_country: String,
+    #[envconfig(from = "CA_CERT_STATE", default = "Berlin")]
+    pub ca_cert_state: String,
+    #[envconfig(from = "CA_CERT_LOCALITY", default = "Berlin")]
+    pub ca_cert_locality: String,
+    #[envconfig(from = "CA_CERT_ORGANIZATION", default = "CA")]
+    pub ca_cert_organization: String,
+    #[envconfig(from = "CA_CERT_ORGANIZATIONAL_UNIT", default = "CA")]
+    pub ca_cert_organizational_unit: String,
+    #[envconfig(from = "CA_CERT_COMMON_NAME", default = "CA")]
+    pub ca_cert_common_name: String,
 }
 
 impl Config {

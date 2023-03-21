@@ -5,7 +5,6 @@ use openssl::asn1::Asn1Time;
 use openssl::bn::{BigNum, MsbOption};
 use openssl::hash::MessageDigest;
 use openssl::pkey::{PKey, Private};
-use openssl::rsa::Rsa;
 use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, KeyUsage, SubjectAlternativeName,
     SubjectKeyIdentifier,
@@ -14,6 +13,9 @@ use openssl::x509::{X509NameBuilder, X509Req, X509};
 use sea_orm::prelude::DateTimeWithTimeZone;
 use shared::util::types::BasicResult;
 use std::error::Error;
+use openssl::ec::{EcGroup, EcKey};
+use openssl::nid::Nid;
+use crate::config::config::Config;
 
 pub struct CACertificate {
     cert: X509,
@@ -22,15 +24,18 @@ pub struct CACertificate {
 
 impl CACertificate {
     /// Make a CA certificate and private key
-    pub fn generate() -> BasicResult<Self> {
-        let rsa = Rsa::generate(2048)?;
-        let key_pair = PKey::from_rsa(rsa)?;
+    pub fn generate(config: &Config) -> BasicResult<Self> {
+        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1)?;
+        let private = EcKey::generate(&group)?;
+        let key_pair = PKey::from_ec_key(private)?;
 
         let mut x509_name = X509NameBuilder::new()?;
-        x509_name.append_entry_by_text("C", "US")?;
-        x509_name.append_entry_by_text("ST", "TX")?;
-        x509_name.append_entry_by_text("O", "Some CA organization")?;
-        x509_name.append_entry_by_text("CN", "ca test")?;
+        x509_name.append_entry_by_text("C", &config.ca_cert_country)?;
+        x509_name.append_entry_by_text("ST", &config.ca_cert_state)?;
+        x509_name.append_entry_by_text("L", &config.ca_cert_locality)?;
+        x509_name.append_entry_by_text("O", &config.ca_cert_organization)?;
+        x509_name.append_entry_by_text("OU", &config.ca_cert_organizational_unit)?;
+        x509_name.append_entry_by_text("CN", &config.ca_cert_common_name)?;
         let x509_name = x509_name.build();
 
         let mut cert_builder = X509::builder()?;
@@ -46,7 +51,7 @@ impl CACertificate {
         cert_builder.set_pubkey(&key_pair)?;
         let not_before = Asn1Time::days_from_now(0)?;
         cert_builder.set_not_before(&not_before)?;
-        let not_after = Asn1Time::days_from_now(365)?;
+        let not_after = Asn1Time::days_from_now(config.ca_cert_validity_days)?;
         cert_builder.set_not_after(&not_after)?;
 
         cert_builder.append_extension(BasicConstraints::new().critical().ca().build()?)?;

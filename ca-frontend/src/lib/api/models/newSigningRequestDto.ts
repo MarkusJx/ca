@@ -10,8 +10,8 @@
  * A certificate signing request
  */
 export interface NewSigningRequestDto {
-  /** Alternative names for the certificate */
-  alternativeNames?: string[] | null;
-  /** The client certificate */
-  request: string;
+	/** Alternative names for the certificate */
+	alternativeNames?: string[] | null;
+	/** The client certificate */
+	request: string;
 }

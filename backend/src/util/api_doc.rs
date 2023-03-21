@@ -35,6 +35,7 @@ use utoipa::{Modify, OpenApi};
             crate::model::client_dto::ClientDto,
             crate::model::create_client_dto::CreateClientDto
         ),
+        schemas(crate::model::ca_certificate_dto::CACertificateDto),
         schemas(shared::model::signing_request_dto::SigningRequestDto),
     ),
     tags(

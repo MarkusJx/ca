@@ -7,77 +7,82 @@
  */
 import { createQuery, createMutation } from '@tanstack/svelte-query';
 import type {
-  CreateQueryOptions,
-  CreateMutationOptions,
-  QueryFunction,
-  MutationFunction,
-  CreateQueryResult,
-  QueryKey,
+	CreateQueryOptions,
+	CreateMutationOptions,
+	QueryFunction,
+	MutationFunction,
+	CreateQueryResult,
+	QueryKey,
 } from '@tanstack/svelte-query';
-import type { ErrorDto, NewSigningRequestDto, ClientCert } from '../models';
-import { customInstance } from '../axios';
-import type { ErrorType } from '../axios';
+import type {
+	CACertificateDto,
+	ErrorDto,
+	SigningRequestDto,
+	NewSigningRequestDto,
+} from '.././models';
+import { customInstance } from '.././axios';
+import type { ErrorType } from '.././axios';
 
 // eslint-disable-next-line
 type SecondParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  args: infer P
+	config: any,
+	args: infer P
 ) => any
-  ? P
-  : never;
+	? P
+	: never;
 
 /**
  * Get the server's CA certificate
  * @summary Get the server's CA certificate
  */
 export const getCaCertificate = (
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal
+	options?: SecondParameter<typeof customInstance>,
+	signal?: AbortSignal
 ) => {
-  return customInstance<string>(
-    { url: `/api/v1/certificate/ca`, method: 'get', signal },
-    options
-  );
+	return customInstance<CACertificateDto>(
+		{ url: `/api/v1/certificate/ca`, method: 'get', signal },
+		options
+	);
 };
 
 export const getGetCaCertificateQueryKey = () => [`/api/v1/certificate/ca`];
 
 export type GetCaCertificateQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getCaCertificate>>
+	Awaited<ReturnType<typeof getCaCertificate>>
 >;
 export type GetCaCertificateQueryError = ErrorType<ErrorDto>;
 
 export const createGetCaCertificate = <
-  TData = Awaited<ReturnType<typeof getCaCertificate>>,
-  TError = ErrorType<ErrorDto>
+	TData = Awaited<ReturnType<typeof getCaCertificate>>,
+	TError = ErrorType<ErrorDto>
 >(options?: {
-  query?: CreateQueryOptions<
-    Awaited<ReturnType<typeof getCaCertificate>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customInstance>;
+	query?: CreateQueryOptions<
+		Awaited<ReturnType<typeof getCaCertificate>>,
+		TError,
+		TData
+	>;
+	request?: SecondParameter<typeof customInstance>;
 }): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+	const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetCaCertificateQueryKey();
+	const queryKey = queryOptions?.queryKey ?? getGetCaCertificateQueryKey();
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getCaCertificate>>
-  > = ({ signal }) => getCaCertificate(requestOptions, signal);
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getCaCertificate>>
+	> = ({ signal }) => getCaCertificate(requestOptions, signal);
 
-  const query = createQuery<
-    Awaited<ReturnType<typeof getCaCertificate>>,
-    TError,
-    TData
-  >({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
+	const query = createQuery<
+		Awaited<ReturnType<typeof getCaCertificate>>,
+		TError,
+		TData
+	>({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: QueryKey };
 
-  query.queryKey = queryKey;
+	query.queryKey = queryKey;
 
-  return query;
+	return query;
 };
 
 /**
@@ -86,102 +91,53 @@ using the server's CA certificate
  * @summary Sign a certificate signing request
  */
 export const signCertificate = (
-  newSigningRequestDto: NewSigningRequestDto,
-  options?: SecondParameter<typeof customInstance>
+	newSigningRequestDto: NewSigningRequestDto,
+	options?: SecondParameter<typeof customInstance>
 ) => {
-  return customInstance<string>(
-    {
-      url: `/api/v1/certificate/sign`,
-      method: 'post',
-      headers: { 'Content-Type': 'application/json' },
-      data: newSigningRequestDto,
-    },
-    options
-  );
+	return customInstance<SigningRequestDto>(
+		{
+			url: `/api/v1/certificate/sign`,
+			method: 'post',
+			headers: { 'Content-Type': 'application/json' },
+			data: newSigningRequestDto,
+		},
+		options
+	);
 };
 
 export type SignCertificateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof signCertificate>>
+	Awaited<ReturnType<typeof signCertificate>>
 >;
 export type SignCertificateMutationBody = NewSigningRequestDto;
 export type SignCertificateMutationError = ErrorType<ErrorDto>;
 
 export const createSignCertificate = <
-  TError = ErrorType<ErrorDto>,
-  TContext = unknown
+	TError = ErrorType<ErrorDto>,
+	TContext = unknown
 >(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof signCertificate>>,
-    TError,
-    { data: NewSigningRequestDto },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
+	mutation?: CreateMutationOptions<
+		Awaited<ReturnType<typeof signCertificate>>,
+		TError,
+		{ data: NewSigningRequestDto },
+		TContext
+	>;
+	request?: SecondParameter<typeof customInstance>;
 }) => {
-  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+	const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof signCertificate>>,
-    { data: NewSigningRequestDto }
-  > = (props) => {
-    const { data } = props ?? {};
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof signCertificate>>,
+		{ data: NewSigningRequestDto }
+	> = (props) => {
+		const { data } = props ?? {};
 
-    return signCertificate(data, requestOptions);
-  };
+		return signCertificate(data, requestOptions);
+	};
 
-  return createMutation<
-    Awaited<ReturnType<typeof signCertificate>>,
-    TError,
-    { data: NewSigningRequestDto },
-    TContext
-  >(mutationFn, mutationOptions);
-};
-export const generateClient = (
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal
-) => {
-  return customInstance<ClientCert>(
-    { url: `/generate-client`, method: 'get', signal },
-    options
-  );
-};
-
-export const getGenerateClientQueryKey = () => [`/generate-client`];
-
-export type GenerateClientQueryResult = NonNullable<
-  Awaited<ReturnType<typeof generateClient>>
->;
-export type GenerateClientQueryError = ErrorType<ErrorDto>;
-
-export const createGenerateClient = <
-  TData = Awaited<ReturnType<typeof generateClient>>,
-  TError = ErrorType<ErrorDto>
->(options?: {
-  query?: CreateQueryOptions<
-    Awaited<ReturnType<typeof generateClient>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGenerateClientQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof generateClient>>> = ({
-    signal,
-  }) => generateClient(requestOptions, signal);
-
-  const query = createQuery<
-    Awaited<ReturnType<typeof generateClient>>,
-    TError,
-    TData
-  >({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryKey;
-
-  return query;
+	return createMutation<
+		Awaited<ReturnType<typeof signCertificate>>,
+		TError,
+		{ data: NewSigningRequestDto },
+		TContext
+	>(mutationFn, mutationOptions);
 };

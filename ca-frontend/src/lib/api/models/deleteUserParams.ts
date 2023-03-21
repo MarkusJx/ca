@@ -7,9 +7,9 @@
  */
 
 export type DeleteUserParams = {
-  /**
+	/**
  * Whether to delete the user rather than just deactivating it.
 Defaults to false.
  */
-  deleteInDatabase?: boolean;
+	deleteInDatabase?: boolean;
 };

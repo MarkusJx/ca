@@ -7,6 +7,6 @@
  */
 
 export interface ClientCert {
-  cert: string;
-  generated_at: number;
+	cert: string;
+	generated_at: number;
 }

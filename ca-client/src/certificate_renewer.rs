@@ -81,7 +81,7 @@ impl CertificateRenewer {
 
     pub fn renew_periodically(&mut self) {
         let arc = self.data.clone();
-        thread::spawn(move || loop {
+        tokio::spawn(async move { loop {
             let mut data = arc.lock().unwrap();
 
             info!("Checking token");
@@ -135,6 +135,6 @@ impl CertificateRenewer {
             let expires_in = expires_in.unwrap_or(10 * 60);
             info!("Sleeping for {} hours", expires_in / 3600);
             thread::sleep(Duration::from_secs(expires_in));
-        });
+        }});
     }
 }

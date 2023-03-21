@@ -7,13 +7,13 @@
  */
 
 export interface UserDto {
-  active: boolean;
-  createdAt: string;
-  email: string | null;
-  firstName: string | null;
-  id: string;
-  lastName: string | null;
-  name: string;
-  roles: string[];
-  updatedAt: string;
+	active: boolean;
+	createdAt: string;
+	email: string | null;
+	firstName: string | null;
+	id: string;
+	lastName: string | null;
+	name: string;
+	roles: string[];
+	updatedAt: string;
 }

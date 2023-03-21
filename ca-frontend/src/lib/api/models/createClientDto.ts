@@ -7,8 +7,8 @@
  */
 
 export interface CreateClientDto {
-  /** The client name
+	/** The client name
 Only required when creating a new client */
-  name: string | null;
-  validUntil: string;
+	name: string | null;
+	validUntil: string;
 }

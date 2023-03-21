@@ -1,3 +1,4 @@
+export * from './cACertificateDto';
 export * from './clientCert';
 export * from './clientDto';
 export * from './createClientDto';

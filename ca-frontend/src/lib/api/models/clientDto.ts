@@ -7,22 +7,22 @@
  */
 
 export interface ClientDto {
-  /** Whether the client is active */
-  active: boolean;
-  /** The time the client was created */
-  createdAt: string;
-  /** The client id */
-  id: string;
-  /** The client name */
-  name: string;
-  /** The client token. Only returned when creating a new client. */
-  token?: string | null;
-  /** The client token hash */
-  tokenHash: string;
-  /** The time the client was last updated */
-  updatedAt: string;
-  /** The id of the user that owns the client */
-  userId: string;
-  /** The time the client is valid until */
-  validUntil: string;
+	/** Whether the client is active */
+	active: boolean;
+	/** The time the client was created */
+	createdAt: string;
+	/** The client id */
+	id: string;
+	/** The client name */
+	name: string;
+	/** The client token. Only returned when creating a new client. */
+	token?: string | null;
+	/** The client token hash */
+	tokenHash: string;
+	/** The time the client was last updated */
+	updatedAt: string;
+	/** The id of the user that owns the client */
+	userId: string;
+	/** The time the client is valid until */
+	validUntil: string;
 }

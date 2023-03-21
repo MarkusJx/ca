@@ -7,12 +7,12 @@
  */
 
 export interface HealthInfoDto {
-  /** The current version of keycloak */
-  keycloakVersion?: string | null;
-  /** Whether the API is up and running */
-  ok: boolean;
-  /** The current status of the API */
-  status: string;
-  /** The current version of the API */
-  version: string;
+	/** The current version of keycloak */
+	keycloakVersion?: string | null;
+	/** Whether the API is up and running */
+	ok: boolean;
+	/** The current status of the API */
+	status: string;
+	/** The current version of the API */
+	version: string;
 }

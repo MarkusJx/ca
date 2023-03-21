@@ -2,6 +2,7 @@ use crate::config::app_state::AppState;
 use crate::entity::signing_request;
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::extractors::JwtClientClaims;
+use crate::model::ca_certificate_dto::CACertificateDto;
 use crate::register_module;
 use crate::util::ca_certificate::CACertificate;
 use crate::util::traits::from_model::FromModel;
@@ -22,18 +23,15 @@ use shared::util::traits::u8_vec_to_string::U8VecToString;
     tag = "Certificates",
     operation_id = "getCaCertificate",
     responses(
-        (status = 200, description = "Ok", body = String),
+        (status = 200, description = "Ok", body = CACertificateDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
 )]
 #[get("/ca")]
-async fn ca_certificate(data: Data<AppState>) -> WebResult<String> {
-    Ok(data
-        .certificate_service
-        .get_certificate()
-        .await?
-        .public
-        .to_string())
+async fn ca_certificate(data: Data<AppState>) -> WebResult<Json<CACertificateDto>> {
+    Ok(Json(CACertificateDto::from_model(
+        data.certificate_service.get_certificate().await?,
+    )))
 }
 
 /// Sign a certificate signing request
@@ -45,7 +43,7 @@ async fn ca_certificate(data: Data<AppState>) -> WebResult<String> {
     operation_id = "signCertificate",
     request_body = NewSigningRequestDto,
     responses(
-        (status = 200, description = "Ok", body = String),
+        (status = 200, description = "Ok", body = SigningRequestDto),
         (status = 400, description = "Bad request", body = ErrorDto),
         (status = 401, description = "Unauthorized", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),

@@ -7,10 +7,10 @@
  */
 
 export interface SigningRequestDto {
-  certificate?: string | null;
-  clientId: string;
-  hash: string;
-  issuedAt: string;
-  serialNumber: string;
-  subjectName: string;
+	certificate?: string | null;
+	clientId: string;
+	hash: string;
+	issuedAt: string;
+	serialNumber: string;
+	subjectName: string;
 }

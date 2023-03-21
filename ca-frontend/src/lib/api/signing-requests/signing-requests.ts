@@ -7,126 +7,126 @@
  */
 import { createQuery } from '@tanstack/svelte-query';
 import type {
-  CreateQueryOptions,
-  QueryFunction,
-  CreateQueryResult,
-  QueryKey,
+	CreateQueryOptions,
+	QueryFunction,
+	CreateQueryResult,
+	QueryKey,
 } from '@tanstack/svelte-query';
-import type { SigningRequestDto, ErrorDto } from '../models';
-import { customInstance } from '../axios';
-import type { ErrorType } from '../axios';
+import type { SigningRequestDto, ErrorDto } from '.././models';
+import { customInstance } from '.././axios';
+import type { ErrorType } from '.././axios';
 
 // eslint-disable-next-line
 type SecondParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  args: infer P
+	config: any,
+	args: infer P
 ) => any
-  ? P
-  : never;
+	? P
+	: never;
 
 export const getSigningRequests = (
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal
+	options?: SecondParameter<typeof customInstance>,
+	signal?: AbortSignal
 ) => {
-  return customInstance<SigningRequestDto[]>(
-    { url: `/api/v1/signing-request`, method: 'get', signal },
-    options
-  );
+	return customInstance<SigningRequestDto[]>(
+		{ url: `/api/v1/signing-request`, method: 'get', signal },
+		options
+	);
 };
 
 export const getGetSigningRequestsQueryKey = () => [`/api/v1/signing-request`];
 
 export type GetSigningRequestsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getSigningRequests>>
+	Awaited<ReturnType<typeof getSigningRequests>>
 >;
 export type GetSigningRequestsQueryError = ErrorType<ErrorDto>;
 
 export const createGetSigningRequests = <
-  TData = Awaited<ReturnType<typeof getSigningRequests>>,
-  TError = ErrorType<ErrorDto>
+	TData = Awaited<ReturnType<typeof getSigningRequests>>,
+	TError = ErrorType<ErrorDto>
 >(options?: {
-  query?: CreateQueryOptions<
-    Awaited<ReturnType<typeof getSigningRequests>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customInstance>;
+	query?: CreateQueryOptions<
+		Awaited<ReturnType<typeof getSigningRequests>>,
+		TError,
+		TData
+	>;
+	request?: SecondParameter<typeof customInstance>;
 }): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+	const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetSigningRequestsQueryKey();
+	const queryKey = queryOptions?.queryKey ?? getGetSigningRequestsQueryKey();
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getSigningRequests>>
-  > = ({ signal }) => getSigningRequests(requestOptions, signal);
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getSigningRequests>>
+	> = ({ signal }) => getSigningRequests(requestOptions, signal);
 
-  const query = createQuery<
-    Awaited<ReturnType<typeof getSigningRequests>>,
-    TError,
-    TData
-  >({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
+	const query = createQuery<
+		Awaited<ReturnType<typeof getSigningRequests>>,
+		TError,
+		TData
+	>({ queryKey, queryFn, ...queryOptions }) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: QueryKey };
 
-  query.queryKey = queryKey;
+	query.queryKey = queryKey;
 
-  return query;
+	return query;
 };
 
 export const getSigningRequestsByClientId = (
-  id: string,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal
+	id: string,
+	options?: SecondParameter<typeof customInstance>,
+	signal?: AbortSignal
 ) => {
-  return customInstance<SigningRequestDto[]>(
-    { url: `/api/v1/signing-request/${id}`, method: 'get', signal },
-    options
-  );
+	return customInstance<SigningRequestDto[]>(
+		{ url: `/api/v1/signing-request/${id}`, method: 'get', signal },
+		options
+	);
 };
 
 export const getGetSigningRequestsByClientIdQueryKey = (id: string) => [
-  `/api/v1/signing-request/${id}`,
+	`/api/v1/signing-request/${id}`,
 ];
 
 export type GetSigningRequestsByClientIdQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getSigningRequestsByClientId>>
+	Awaited<ReturnType<typeof getSigningRequestsByClientId>>
 >;
 export type GetSigningRequestsByClientIdQueryError = ErrorType<ErrorDto>;
 
 export const createGetSigningRequestsByClientId = <
-  TData = Awaited<ReturnType<typeof getSigningRequestsByClientId>>,
-  TError = ErrorType<ErrorDto>
+	TData = Awaited<ReturnType<typeof getSigningRequestsByClientId>>,
+	TError = ErrorType<ErrorDto>
 >(
-  id: string,
-  options?: {
-    query?: CreateQueryOptions<
-      Awaited<ReturnType<typeof getSigningRequestsByClientId>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  }
+	id: string,
+	options?: {
+		query?: CreateQueryOptions<
+			Awaited<ReturnType<typeof getSigningRequestsByClientId>>,
+			TError,
+			TData
+		>;
+		request?: SecondParameter<typeof customInstance>;
+	}
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+	const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetSigningRequestsByClientIdQueryKey(id);
+	const queryKey =
+		queryOptions?.queryKey ?? getGetSigningRequestsByClientIdQueryKey(id);
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getSigningRequestsByClientId>>
-  > = ({ signal }) => getSigningRequestsByClientId(id, requestOptions, signal);
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getSigningRequestsByClientId>>
+	> = ({ signal }) => getSigningRequestsByClientId(id, requestOptions, signal);
 
-  const query = createQuery<
-    Awaited<ReturnType<typeof getSigningRequestsByClientId>>,
-    TError,
-    TData
-  >({ queryKey, queryFn, enabled: !!id, ...queryOptions }) as CreateQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
+	const query = createQuery<
+		Awaited<ReturnType<typeof getSigningRequestsByClientId>>,
+		TError,
+		TData
+	>({ queryKey, queryFn, enabled: !!id, ...queryOptions }) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: QueryKey };
 
-  query.queryKey = queryKey;
+	query.queryKey = queryKey;
 
-  return query;
+	return query;
 };

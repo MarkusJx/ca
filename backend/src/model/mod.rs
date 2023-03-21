@@ -1,3 +1,4 @@
+pub mod ca_certificate_dto;
 pub mod client_dto;
 pub mod create_client_dto;
 pub mod create_user_dto;

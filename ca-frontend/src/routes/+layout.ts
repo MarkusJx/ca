@@ -6,12 +6,12 @@ import type { LayoutLoad } from './$types';
 export const prerender = true;
 
 export const load = (async () => {
-  let keycloakPromise: Promise<Keycloak | null> | null = null;
-  if (browser) {
-    keycloakPromise = KeycloakAdapter.init(false);
-  }
+	let keycloakPromise: Promise<Keycloak | null> | null = null;
+	if (browser) {
+		keycloakPromise = KeycloakAdapter.init(false);
+	}
 
-  return {
-    keycloak: keycloakPromise,
-  };
+	return {
+		keycloak: keycloakPromise,
+	};
 }) satisfies LayoutLoad;
