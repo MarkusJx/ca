@@ -27,7 +27,7 @@
 		try {
 			await toast.promise(
 				deleteElement(element?.id!, {
-					deleteInDatabase,
+					deleteInDatabase: deleteInDatabase || !element?.active,
 				}),
 				{
 					loading: `Deleting ${name}...`,
@@ -52,14 +52,18 @@
 >
 	<Title id="delete-element-title">Delete {name}</Title>
 	<Content id="delete-element-content">
-		Are you sure you want to delete {name} '{element?.name}'?
+		Are you sure you want to delete {name} '{element?.displayName}'?
 
-		<div>
-			<FormField>
-				<Checkbox bind:checked={deleteInDatabase} />
-				<span slot="label">Delete {name} rather than disabling it</span>
-			</FormField>
-		</div>
+		{#if element?.active}
+			<div>
+				<FormField>
+					<Checkbox bind:checked={deleteInDatabase} />
+					<span slot="label">Delete {name} rather than disabling it</span>
+				</FormField>
+			</div>
+		{:else}
+			<p>The {name} will be deleted as it isn't active.</p>
+		{/if}
 	</Content>
 	<div class="button-container">
 		<Button on:click={onConfirm} disabled={loading}>

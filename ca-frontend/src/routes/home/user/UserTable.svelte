@@ -6,6 +6,8 @@
 	import IconButton from '@smui/icon-button';
 	import type UserToDelete from '$lib/components/ElementToDelete';
 	import Chips from '$lib/components/Chips.svelte';
+	import Tooltip, { Wrapper } from '@smui/tooltip';
+	import { KeycloakAdapter } from '$lib/keycloak';
 
 	export let data: UserDto[] | null;
 	export let deleteUser: (user: UserToDelete) => void;
@@ -35,7 +37,10 @@
 			{#each data as item (item.id)}
 				<Row>
 					<Cell>{item.id}</Cell>
-					<Cell>{item.name}</Cell>
+					<Wrapper>
+						<Cell>{item.displayName}</Cell>
+						<Tooltip>Actual name: {item.name}</Tooltip>
+					</Wrapper>
 					<Cell>{item.firstName ?? ''}</Cell>
 					<Cell>{item.lastName ?? ''}</Cell>
 					<Cell>{item.email ?? ''}</Cell>
@@ -49,13 +54,20 @@
 					<Cell>
 						<Checkbox checked={item.active} disabled />
 					</Cell>
-					<Cell>
-						<IconButton
-							class="material-icons"
-							on:click={() => deleteUser({ id: item.id, name: item.name })}
-							>delete</IconButton
-						>
-					</Cell>
+					<Wrapper>
+						<Cell>
+							<IconButton
+								class="material-icons"
+								on:click={() => deleteUser(item)}
+								disabled={KeycloakAdapter.username === item.name}
+							>
+								delete
+							</IconButton>
+						</Cell>
+						{#if KeycloakAdapter.username === item.name}
+							<Tooltip>You can't delete yourself</Tooltip>
+						{/if}
+					</Wrapper>
 				</Row>
 			{/each}
 		{:else}

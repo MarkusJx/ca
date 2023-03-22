@@ -39,6 +39,10 @@ export class KeycloakAdapter {
 		return this.kc?.hasRealmRole(role) ?? false;
 	}
 
+	public static get username(): string | null {
+		return this.kc?.idTokenParsed?.preferred_username ?? null;
+	}
+
 	public static async logout(): Promise<void> {
 		await this.kc?.logout();
 	}

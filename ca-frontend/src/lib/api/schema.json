@@ -905,6 +905,7 @@
 				"required": [
 					"id",
 					"name",
+					"displayName",
 					"userId",
 					"tokenHash",
 					"active",
@@ -920,6 +921,10 @@
 					"createdAt": {
 						"type": "string",
 						"description": "The time the client was created"
+					},
+					"displayName": {
+						"type": "string",
+						"description": "The client display name"
 					},
 					"id": { "type": "string", "description": "The client id" },
 					"name": { "type": "string", "description": "The client name" },
@@ -1074,6 +1079,7 @@
 				"required": [
 					"id",
 					"name",
+					"displayName",
 					"active",
 					"email",
 					"firstName",
@@ -1085,6 +1091,7 @@
 				"properties": {
 					"active": { "type": "boolean" },
 					"createdAt": { "type": "string" },
+					"displayName": { "type": "string" },
 					"email": { "type": "string", "nullable": true },
 					"firstName": { "type": "string", "nullable": true },
 					"id": { "type": "string" },

@@ -5,6 +5,7 @@
 	import IconButton from '@smui/icon-button';
 	import LinearProgress from '@smui/linear-progress';
 	import CustomDate from '$lib/CustomDate.js';
+	import Tooltip, { Wrapper } from '@smui/tooltip';
 
 	export let data: ClientDto[] | null = null;
 </script>
@@ -31,7 +32,10 @@
 			{#each data as item (item.id)}
 				<Row>
 					<Cell>{item.id}</Cell>
-					<Cell>{item.name}</Cell>
+					<Wrapper>
+						<Cell>{item.displayName}</Cell>
+						<Tooltip>Actual name: {item.name}</Tooltip>
+					</Wrapper>
 					<Cell>{CustomDate.format(item.createdAt)}</Cell>
 					<Cell>{CustomDate.format(item.validUntil)}</Cell>
 					<Cell>

@@ -344,10 +344,14 @@ async fn delete(
             .ok_or(HttpResponseError::bad_request(Some(
                 "Failed to delete client",
             )))?;
-    } else {
+    } else if client.active {
         data.client_service
             .disable(client.into_active_model())
             .await?;
+    } else {
+        return Err(HttpResponseError::bad_request(Some(
+            "Client is already inactive",
+        )));
     }
 
     Ok(HttpResponse::NoContent().finish())

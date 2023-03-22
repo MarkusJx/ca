@@ -11,6 +11,8 @@ export interface ClientDto {
 	active: boolean;
 	/** The time the client was created */
 	createdAt: string;
+	/** The client display name */
+	displayName: string;
 	/** The client id */
 	id: string;
 	/** The client name */

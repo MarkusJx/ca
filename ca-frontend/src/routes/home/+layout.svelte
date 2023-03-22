@@ -12,9 +12,14 @@
 	import Menu from '@smui/menu';
 	import { page } from '$app/stores';
 	import { KeycloakAdapter } from '$lib/keycloak.js';
+	import { loadStores, saveStore, sideDrawerOpen } from '$lib/stores.js';
+	import { onMount } from 'svelte';
 
-	let open = false;
 	let menu: Menu & { setOpen: (open: boolean) => void };
+
+	onMount(() => {
+		loadStores();
+	});
 
 	const logout = () => {
 		KeycloakAdapter.logout();
@@ -28,10 +33,11 @@
 
 	let route: string | null;
 	$: route = $page.route.id;
+	$: saveStore('sideDrawerOpen', $sideDrawerOpen);
 </script>
 
 <div>
-	<Drawer variant="dismissible" bind:open>
+	<Drawer variant="dismissible" bind:open={$sideDrawerOpen}>
 		<Header>
 			<DrawerTitle>CA</DrawerTitle>
 		</Header>
@@ -58,7 +64,10 @@
 			<Row>
 				<Section>
 					<Wrapper>
-						<IconButton class="material-icons" on:click={() => (open = !open)}>
+						<IconButton
+							class="material-icons"
+							on:click={() => ($sideDrawerOpen = !$sideDrawerOpen)}
+						>
 							menu
 						</IconButton>
 						<Tooltip>Menu</Tooltip>

@@ -34,3 +34,11 @@ export function onVisible<T extends Element>(
 		});
 	}).observe(element);
 }
+
+export function mapStyle(
+	style: string,
+	optionalStyle: string | null | undefined
+): string {
+	if (!style.endsWith(';')) style += ';';
+	return optionalStyle ? `${style} ${optionalStyle}` : style;
+}

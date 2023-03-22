@@ -8,6 +8,7 @@ use utoipa::{Modify, OpenApi};
     paths(
         crate::controller::certificate_controller::ca_certificate,
         crate::controller::certificate_controller::sign,
+        crate::controller::certificate_controller::generate_root_certificate,
         crate::controller::common::health_check,
         crate::controller::user_controller::create,
         crate::controller::user_controller::list,

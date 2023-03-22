@@ -9,6 +9,7 @@
 export interface UserDto {
 	active: boolean;
 	createdAt: string;
+	displayName: string;
 	email: string | null;
 	firstName: string | null;
 	id: string;

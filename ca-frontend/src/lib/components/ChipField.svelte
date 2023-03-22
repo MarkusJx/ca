@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { onVisible } from '$lib/util';
 	import { classMap } from '@smui/common/internal';
+	import { mapStyle } from '$lib/util.js';
 
 	export let values: string[];
 	export let selected: string[];
@@ -26,10 +27,12 @@
 </script>
 
 <div
+	style={mapStyle('flex-direction: unset', style)}
 	class={classMap({
 		'mdc-text-field': true,
 		'mdc-text-field--outlined': true,
 		'mdc-text-field--label-floating': true,
+		'mdc-text-field--textarea': true,
 		'mdc-text-field--focused': focused,
 	})}
 >
@@ -38,9 +41,9 @@
 			{title}
 		</FloatingLabel>
 	</NotchedOutline>
-	<div class="container" {style}>
-		<Set chips={values} let:chip filter bind:selected style="padding: 4px 0">
-			<Chip {chip} touch style="margin: 8px 0">
+	<div class="container">
+		<Set chips={values} let:chip filter bind:selected style="gap: 8px">
+			<Chip {chip} touch style="margin: 0">
 				<Text>{chip}</Text>
 			</Chip>
 		</Set>
@@ -51,6 +54,7 @@
 	.container {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 0 8px;
+		padding: 8px 6px;
 	}
 </style>

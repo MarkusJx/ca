@@ -17,6 +17,7 @@ pub struct Model {
     pub user_id: Uuid,
     #[sea_orm(unique)]
     pub name: String,
+    pub original_name: String,
     pub active: bool,
     pub valid_until: DateTimeWithTimeZone,
     pub created_at: DateTimeWithTimeZone,
@@ -88,6 +89,8 @@ impl ActiveModelBehavior for ActiveModel {
             .collect::<DbResult<Vec<_>>>()?;
 
             TokenRepository::deactivate_all_by_client(db, self.id.as_ref()).await?;
+        } else if !self.name.is_unchanged() {
+            self.original_name = ActiveValue::Set(self.name.as_ref().to_string());
         }
 
         self.updated_at = ActiveValue::Set(Utc::now().into());

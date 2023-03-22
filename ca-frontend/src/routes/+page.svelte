@@ -14,7 +14,7 @@
 			error: 'Failed to download certificate',
 		});
 
-		downloadFile([cert], 'ca.crt');
+		downloadFile([cert.certificate], 'ca.crt');
 	};
 </script>
 

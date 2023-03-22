@@ -101,7 +101,8 @@
 			<ChipField
 				values={roles}
 				bind:selected={selectedRoles}
-				title="RolesRoles"
+				title="Roles"
+				style="margin-bottom: 19px"
 			/>
 			<FormTextField
 				label="Email"

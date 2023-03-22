@@ -12,27 +12,22 @@
 	import type ElementToDelete from '$lib/components/ElementToDelete';
 	import { deleteUser } from '$lib/api/users/users';
 	import { listRoles } from '$lib/api/admin/admin';
+	import { includeInactive, saveStore } from '$lib/stores';
 
 	let createDialogOpen = false;
 	let deleteDialogUser: ElementToDelete | null = null;
 	let userData: UserDto[] | null = null;
 	let roles: string[] = [];
-	let includeInactive: boolean = false;
 
 	onMount(async () => {
-		await Promise.all([
-			loadData(),
-			(async () => {
-				roles = await listRoles();
-			})(),
-		]);
+		await Promise.all([loadData(), (roles = await listRoles())]);
 	});
 
 	const loadData = async () => {
 		userData = null;
 		try {
 			userData = await listUsers({
-				includeInactive,
+				includeInactive: $includeInactive,
 			});
 		} catch (e) {
 			toast.error('Failed to load data');
@@ -55,9 +50,12 @@
 	};
 
 	const handleSwitchIncludeInactive = () => {
-		includeInactive = !includeInactive;
+		$includeInactive = !$includeInactive;
+		saveStore('includeInactive', $includeInactive);
 		loadData();
 	};
+
+	$: $includeInactive && loadData();
 </script>
 
 <CreateUserDialog
@@ -76,7 +74,7 @@
 	<div class="include-inactive">
 		<FormField>
 			<Switch
-				checked={includeInactive}
+				checked={$includeInactive}
 				disabled={!userData}
 				on:click={handleSwitchIncludeInactive}
 			/>

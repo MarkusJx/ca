@@ -1,9 +1,24 @@
 use crate::config::config::Config;
-use crate::entity::{certificate, client, signing_request, token, user};
+use crate::entity::{certificate, client, root_certificate, signing_request, token, user};
 use log::debug;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Schema};
 use std::error::Error;
 use std::time::Duration;
+
+macro_rules! generate_schema {
+    ($db: ident, $($entity: ident), *) => {
+        let builder = $db.get_database_backend();
+        let schema = Schema::new(builder);
+        $(
+            let $entity = builder.build(
+                schema
+                    .create_table_from_entity($entity::Entity)
+                    .if_not_exists(),
+            );
+            $db.execute($entity).await?;
+        )+
+    };
+}
 
 pub async fn connect(config: &Config) -> Result<DatabaseConnection, Box<dyn Error>> {
     let url = format!(
@@ -32,40 +47,15 @@ pub async fn connect(config: &Config) -> Result<DatabaseConnection, Box<dyn Erro
 }
 
 pub async fn fill(db: &DatabaseConnection) -> Result<(), Box<dyn Error>> {
-    let builder = db.get_database_backend();
-    let schema = Schema::new(builder);
-
-    let user = builder.build(
-        schema
-            .create_table_from_entity(user::Entity)
-            .if_not_exists(),
+    generate_schema!(
+        db,
+        user,
+        client,
+        signing_request,
+        token,
+        certificate,
+        root_certificate
     );
-    let client = builder.build(
-        schema
-            .create_table_from_entity(client::Entity)
-            .if_not_exists(),
-    );
-    let signing_request = builder.build(
-        schema
-            .create_table_from_entity(signing_request::Entity)
-            .if_not_exists(),
-    );
-    let token = builder.build(
-        schema
-            .create_table_from_entity(token::Entity)
-            .if_not_exists(),
-    );
-    let certificate = builder.build(
-        schema
-            .create_table_from_entity(certificate::Entity)
-            .if_not_exists(),
-    );
-
-    db.execute(user).await?;
-    db.execute(client).await?;
-    db.execute(signing_request).await?;
-    db.execute(token).await?;
-    db.execute(certificate).await?;
 
     Ok(())
 }

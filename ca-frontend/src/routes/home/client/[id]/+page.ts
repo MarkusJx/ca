@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import { getClientById } from '$lib/api/clients/clients';
 import { getSigningRequestsByClientId } from '$lib/api/signing-requests/signing-requests';
+import { AxiosError } from 'axios';
 
 export const load = (({ params, parent }) => {
 	return {
@@ -9,17 +10,23 @@ export const load = (({ params, parent }) => {
 			if (!data.keycloak || !params.id) return [null, null];
 
 			try {
-				return await Promise.all([
-					getClientById(params.id),
-					getSigningRequestsByClientId(params.id),
-				]);
+				const client = await getClientById(params.id, {
+					includeInactive: true,
+				});
+				const signingRequests = client.active
+					? await getSigningRequestsByClientId(params.id)
+					: [];
+
+				return [client, signingRequests];
 			} catch (e: any) {
-				if (e?.response?.status === 401) {
-					return [null, null];
-				} else if (typeof e?.response?.status === 'number') {
-					return error(e.response.status);
+				if (e instanceof AxiosError) {
+					if (e.response?.status === 401) {
+						return [null, null];
+					} else {
+						throw error(e.response?.status || 500);
+					}
 				} else {
-					return error(500);
+					throw error(500);
 				}
 			}
 		}),

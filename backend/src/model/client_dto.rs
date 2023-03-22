@@ -8,6 +8,9 @@ pub struct ClientDto {
     pub id: String,
     /// The client name
     pub name: String,
+    /// The client display name
+    #[serde(rename = "displayName")]
+    pub display_name: String,
     /// The id of the user that owns the client
     #[serde(rename = "userId")]
     pub user_id: String,
@@ -35,6 +38,7 @@ impl ClientDto {
         Self {
             id: model.id.to_string(),
             name: model.name,
+            display_name: model.original_name,
             user_id: model.user_id.to_string(),
             token: None,
             token_hash: token.token_hash,
@@ -53,6 +57,7 @@ impl ClientDto {
         Self {
             id: model.id.to_string(),
             name: model.name,
+            display_name: model.original_name,
             user_id: model.user_id.to_string(),
             token: Some(jwt_token),
             token_hash: token.token_hash,

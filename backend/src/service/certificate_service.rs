@@ -1,3 +1,4 @@
+use crate::config::config::Config;
 use crate::entity::certificate;
 use crate::error::http_response_error::MapHttpResponseError;
 use crate::repository::certificate_repository::CertificateRepository;
@@ -25,13 +26,13 @@ impl CertificateService {
             .map_internal_error(Some("Failed to find active certificate"))
     }
 
-    pub async fn get_certificate(&self) -> WebResult<certificate::Model> {
+    pub async fn get_certificate(&self, config: &Config) -> WebResult<certificate::Model> {
         if let Some(cert) = self.find_active().await? {
             return Ok(cert);
         } else {
             info!("No active ca certificate found, generating new one");
-            let cert =
-                CACertificate::generate().map_internal_error(Some("Failed to generate CA cert"))?;
+            let cert = CACertificate::generate(config)
+                .map_internal_error(Some("Failed to generate CA cert"))?;
 
             self.insert(certificate::ActiveModel {
                 public: ActiveValue::set(

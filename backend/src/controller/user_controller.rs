@@ -323,14 +323,20 @@ async fn delete(
         )));
     }
 
-    data.keycloak_service
-        .delete_user(user.external_id.as_ref().unwrap())
-        .await?;
+    if user.active {
+        data.keycloak_service
+            .delete_user(user.external_id.as_ref().unwrap())
+            .await?;
+    }
 
     if query.delete_in_database.unwrap_or(true) {
         data.user_service.delete(user).await?;
-    } else {
+    } else if user.active {
         data.user_service.disable(user.into()).await?;
+    } else {
+        return Err(HttpResponseError::bad_request(Some(
+            "User is already inactive",
+        )));
     }
 
     Ok(HttpResponse::NoContent().finish())

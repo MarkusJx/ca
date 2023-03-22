@@ -64,6 +64,7 @@ impl ClientRepository {
         mut model: client::ActiveModel,
     ) -> DbResult<client::ActiveModel> {
         model.active = ActiveValue::Set(false);
+        model.name = ActiveValue::Set(format!("{}-{}", model.name.unwrap(), Uuid::new_v4()));
         model.save(db).await
     }
 }

@@ -14,6 +14,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(unique, indexed)]
     pub name: String,
+    pub original_name: String,
     pub external_id: Option<String>,
     #[sea_orm(default = "true")]
     pub active: bool,
@@ -66,6 +67,8 @@ impl ActiveModelBehavior for ActiveModel {
             .await
             .into_iter()
             .collect::<DbResult<Vec<_>>>()?;
+        } else if !self.name.is_unchanged() {
+            self.original_name = ActiveValue::Set(self.name.as_ref().to_string());
         }
 
         self.updated_at = ActiveValue::Set(Utc::now().into());

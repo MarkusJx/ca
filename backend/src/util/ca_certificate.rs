@@ -1,9 +1,12 @@
 #![allow(clippy::uninlined_format_args)]
 
+use crate::config::config::Config;
 use crate::entity::certificate;
 use openssl::asn1::Asn1Time;
 use openssl::bn::{BigNum, MsbOption};
+use openssl::ec::{EcGroup, EcKey};
 use openssl::hash::MessageDigest;
+use openssl::nid::Nid;
 use openssl::pkey::{PKey, Private};
 use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, KeyUsage, SubjectAlternativeName,
@@ -13,9 +16,6 @@ use openssl::x509::{X509NameBuilder, X509Req, X509};
 use sea_orm::prelude::DateTimeWithTimeZone;
 use shared::util::types::BasicResult;
 use std::error::Error;
-use openssl::ec::{EcGroup, EcKey};
-use openssl::nid::Nid;
-use crate::config::config::Config;
 
 pub struct CACertificate {
     cert: X509,

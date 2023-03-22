@@ -1,7 +1,9 @@
 use crate::config::app_state::AppState;
-use crate::entity::signing_request;
+use crate::entity::{root_certificate, signing_request};
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
-use crate::middleware::extractors::JwtClientClaims;
+use crate::middleware::extractors::{JwtClientClaims, KeycloakUserClaims};
+use crate::middleware::keycloak_middleware;
+use crate::middleware::keycloak_roles::AdminRole;
 use crate::model::ca_certificate_dto::CACertificateDto;
 use crate::register_module;
 use crate::util::ca_certificate::CACertificate;
@@ -30,7 +32,9 @@ use shared::util::traits::u8_vec_to_string::U8VecToString;
 #[get("/ca")]
 async fn ca_certificate(data: Data<AppState>) -> WebResult<Json<CACertificateDto>> {
     Ok(Json(CACertificateDto::from_model(
-        data.certificate_service.get_certificate().await?,
+        data.certificate_service
+            .get_certificate(&data.config)
+            .await?,
     )))
 }
 
@@ -61,7 +65,7 @@ async fn sign(
     let req = X509Req::from_pem(request.request.as_bytes()).map_internal_error(None)?;
     let ca_cert: CACertificate = data
         .certificate_service
-        .get_certificate()
+        .get_certificate(&data.config)
         .await?
         .try_into()
         .map_internal_error(None)?;
@@ -121,4 +125,55 @@ async fn sign(
     Ok(Json(dto))
 }
 
-register_module!("/certificate", ca_certificate, sign);
+#[utoipa::path(
+    post,
+    context_path = "/api/v1/certificate",
+    tag = "Certificates",
+    operation_id = "generateRootCertificate",
+    responses(
+        (status = 200, description = "Ok", body = CACertificateDto),
+        (status = 400, description = "Bad request", body = ErrorDto),
+        (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+    security(
+        ("oauth2" = [])
+    )
+)]
+#[post("/root/generate", wrap = "keycloak_middleware::Keycloak")]
+async fn generate_root_certificate(
+    data: Data<AppState>,
+    claims: KeycloakUserClaims<AdminRole>,
+) -> WebResult<Json<CACertificateDto>> {
+    let root = CACertificate::generate(&data.config)
+        .map_internal_error(Some("Failed to generate root certificate"))?;
+    let valid_until = root
+        .valid_until()
+        .map_internal_error(Some("Failed to get valid until"))?;
+
+    let model = data
+        .root_certificate_service
+        .insert(root_certificate::ActiveModel {
+            valid_until: ActiveValue::Set(valid_until.clone()),
+            public: ActiveValue::Set(
+                root.cert_as_pem()
+                    .map_internal_error(Some("Failed to get public key"))?,
+            ),
+            created_by: ActiveValue::Set(claims.user.id),
+            ..Default::default()
+        })
+        .await?;
+
+    Ok(Json(CACertificateDto::from_root_model(
+        model,
+        root.key_pair_as_pem()
+            .map_internal_error(Some("Failed to get key pair"))?,
+    )))
+}
+
+register_module!(
+    "/certificate",
+    ca_certificate,
+    sign,
+    generate_root_certificate
+);

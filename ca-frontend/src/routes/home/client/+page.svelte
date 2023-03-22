@@ -9,11 +9,11 @@
 	import FormField from '@smui/form-field';
 	import CreateClientDialog from './CreateClientDialog.svelte';
 	import TokenDialog from '$lib/components/TokenDialog.svelte';
+	import { includeInactive, saveStore } from '$lib/stores';
 
 	let data: ClientDto[] | null = null;
 	let createClientDialogOpen = false;
 	let token: string | null = null;
-	let includeInactive: boolean = false;
 
 	onMount(() => {
 		loadData();
@@ -21,9 +21,10 @@
 
 	const loadData = async () => {
 		const loadingId = toast.loading('Loading clients...');
+		data = null;
 		try {
 			data = await listClients({
-				includeInactive,
+				includeInactive: $includeInactive,
 			});
 		} catch (_) {
 			data = [];
@@ -42,9 +43,12 @@
 	};
 
 	const handleSwitchIncludeInactive = () => {
-		includeInactive = !includeInactive;
+		$includeInactive = !$includeInactive;
+		saveStore('includeInactive', $includeInactive);
 		loadData();
 	};
+
+	$: $includeInactive && loadData();
 </script>
 
 <CreateClientDialog
@@ -57,7 +61,7 @@
 	<div class="include-inactive">
 		<FormField>
 			<Switch
-				checked={includeInactive}
+				checked={$includeInactive}
 				disabled={!data}
 				on:click={handleSwitchIncludeInactive}
 			/>

@@ -1,4 +1,5 @@
 export default interface ElementToDelete {
 	id: string;
-	name: string;
+	displayName: string;
+	active: boolean;
 }

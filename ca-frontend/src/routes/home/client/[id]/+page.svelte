@@ -12,7 +12,7 @@
 		client: [ClientDto | null, SigningRequestDto[] | null];
 	};
 
-	const [client, signingRequests] = data?.client;
+	const [client, signingRequests] = data?.client || [null, null];
 
 	let deleteDialogClient: ElementToDelete | null = null;
 	const onClientDeleted = (deleted: boolean) => {
