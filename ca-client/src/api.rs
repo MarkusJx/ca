@@ -58,11 +58,13 @@ impl Api {
             alternative_names: alt_names,
         };
 
+        debug!("Sending signing request: {:?}", req);
         let res = self
             .client
             .post(format!("{}/api/v1/certificate/sign", self.api_url).as_str())
             .bearer_auth(self.token.clone())
             .json(&req)
+            .timeout(std::time::Duration::from_secs(60))
             .send()
             .await?
             .error_for_status()?

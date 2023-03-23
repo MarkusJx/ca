@@ -1,22 +1,29 @@
 use dotenv::dotenv;
 use envconfig::Envconfig;
+use log::warn;
 use std::error::Error;
 
 #[derive(Debug, Clone, Envconfig)]
 pub struct Config {
+    #[envconfig(from = "PORT", default = "8080")]
+    pub port: u16,
+    #[envconfig(from = "LOG_LEVEL", default = "info")]
+    pub log_level: String,
+    #[envconfig(from = "ENABLE_SWAGGER", default = "false")]
+    pub enable_swagger: bool,
     #[envconfig(from = "JWT_SECRET")]
     pub jwt_secret: String,
     #[envconfig(from = "JWT_EXPIRES_IN")]
     pub jwt_expires_in: String,
     #[envconfig(from = "JWT_MAX_AGE")]
     pub jwt_max_age: i32,
-    #[envconfig(from = "DB_VENDOR")]
+    #[envconfig(from = "DB_VENDOR", default = "postgres")]
     pub db_vendor: String,
     #[envconfig(from = "DB_HOST")]
     pub db_host: String,
-    #[envconfig(from = "DB_PORT")]
+    #[envconfig(from = "DB_PORT", default = "5432")]
     pub db_port: String,
-    #[envconfig(from = "DB_NAME")]
+    #[envconfig(from = "DB_NAME", default = "ca")]
     pub db_name: String,
     #[envconfig(from = "DB_USER")]
     pub db_user: String,
@@ -56,7 +63,10 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Result<Config, Box<dyn Error>> {
-        dotenv()?;
+        if let Err(e) = dotenv() {
+            warn!("Failed to load .env file: {}", e);
+        }
+
         Config::init_from_env().map_err(|e| e.into())
     }
 }

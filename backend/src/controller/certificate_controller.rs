@@ -1,10 +1,11 @@
 use crate::config::app_state::AppState;
-use crate::entity::{root_certificate, signing_request};
+use crate::entity::{certificate, root_certificate, signing_request};
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::extractors::{JwtClientClaims, KeycloakUserClaims};
 use crate::middleware::keycloak_middleware;
 use crate::middleware::keycloak_roles::AdminRole;
 use crate::model::ca_certificate_dto::CACertificateDto;
+use crate::model::generate_intermediate_dto::GenerateIntermediateDto;
 use crate::register_module;
 use crate::util::ca_certificate::CACertificate;
 use crate::util::traits::from_model::FromModel;
@@ -18,7 +19,8 @@ use shared::model::new_signing_request_dto::NewSigningRequestDto;
 use shared::model::signing_request_dto::SigningRequestDto;
 use shared::util::traits::u8_vec_to_string::U8VecToString;
 
-/// Get the server's CA certificate
+/// Get the CA's intermediate certificate
+/// This is the certificate that is used to sign the client certificates
 #[utoipa::path(
     get,
     context_path = "/api/v1/certificate",
@@ -26,16 +28,73 @@ use shared::util::traits::u8_vec_to_string::U8VecToString;
     operation_id = "getCaCertificate",
     responses(
         (status = 200, description = "Ok", body = CACertificateDto),
+        (status = 404, description = "Intermediate certificate does not exist"),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
 )]
-#[get("/ca")]
-async fn ca_certificate(data: Data<AppState>) -> WebResult<Json<CACertificateDto>> {
-    Ok(Json(CACertificateDto::from_model(
-        data.certificate_service
-            .get_certificate(&data.config)
-            .await?,
-    )))
+#[get("/intermediate")]
+async fn get_intermediate(data: Data<AppState>) -> WebResult<Option<Json<CACertificateDto>>> {
+    Ok(data
+        .certificate_service
+        .find_active()
+        .await?
+        .map(|cert| Json(CACertificateDto::from_model(cert))))
+}
+
+#[utoipa::path(
+    post,
+    context_path = "/api/v1/certificate",
+    tag = "Certificates",
+    operation_id = "generateIntermediate",
+    request_body = GenerateIntermediateDto,
+    responses(
+        (status = 200, description = "Ok", body = CACertificateDto),
+        (status = 400, description = "Bad request", body = ErrorDto),
+        (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+    security(
+        ("oauth2" = [])
+    )
+)]
+#[post("/intermediate/generate", wrap = "keycloak_middleware::Keycloak")]
+async fn generate_intermediate(
+    data: Data<AppState>,
+    body: Json<GenerateIntermediateDto>,
+    _claims: KeycloakUserClaims<AdminRole>,
+) -> WebResult<Json<CACertificateDto>> {
+    let root = data.root_certificate_service.find_active().await?.ok_or(
+        HttpResponseError::bad_request(Some("Root certificate does not exist")),
+    )?;
+    let root = CACertificate::root_from_pem(&root.public, body.root_certificate.as_bytes())
+        .map_internal_error(Some("Failed to parse root certificate"))?;
+
+    let intermediate = CACertificate::generate_intermediate(&data.config, &root)
+        .map_internal_error(Some("Failed to generate intermediate certificate"))?;
+
+    let model = data
+        .certificate_service
+        .insert(certificate::ActiveModel {
+            public: ActiveValue::set(
+                intermediate
+                    .cert_as_pem()
+                    .map_internal_error(Some("Failed to get intermediate certificate"))?,
+            ),
+            private: ActiveValue::set(Some(
+                intermediate
+                    .key_pair_as_pem()
+                    .map_internal_error(Some("Failed to get intermediate key pair"))?,
+            )),
+            valid_until: ActiveValue::set(
+                intermediate
+                    .valid_until()
+                    .map_internal_error(Some("Failed to get intermediate certificate validity"))?,
+            ),
+            ..Default::default()
+        })
+        .await?;
+
+    Ok(Json(CACertificateDto::from_model(model)))
 }
 
 /// Sign a certificate signing request
@@ -62,16 +121,20 @@ async fn sign(
     data: Data<AppState>,
     claims: JwtClientClaims,
 ) -> WebResult<Json<SigningRequestDto>> {
+    println!("Signing request");
     let req = X509Req::from_pem(request.request.as_bytes()).map_internal_error(None)?;
     let ca_cert: CACertificate = data
         .certificate_service
-        .get_certificate(&data.config)
+        .find_active()
         .await?
+        .ok_or(HttpResponseError::bad_request(Some(
+            "No active CA certificate found",
+        )))?
         .try_into()
-        .map_internal_error(None)?;
+        .map_internal_error(Some("Failed to map model"))?;
 
     let signed = ca_cert
-        .sign_request(&req, &request.alternative_names)
+        .sign_request(&req, &request.alternative_names, false)
         .map_internal_error(None)?;
 
     let req = data
@@ -125,6 +188,32 @@ async fn sign(
     Ok(Json(dto))
 }
 
+/// Get the root CA certificate
+/// Only returns the public key as the private key isn't stored
+/// on the server
+#[utoipa::path(
+    get,
+    context_path = "/api/v1/certificate",
+    tag = "Certificates",
+    operation_id = "getRootCertificate",
+    responses(
+        (status = 200, description = "Ok", body = CACertificateDto),
+        (status = 404, description = "Root certificate does not exist"),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+)]
+#[get("/root")]
+async fn get_root_certificate(data: Data<AppState>) -> WebResult<Option<Json<CACertificateDto>>> {
+    Ok(data
+        .root_certificate_service
+        .find_active()
+        .await?
+        .map(|cert| Json(CACertificateDto::from_root_model(cert, None))))
+}
+
+/// Generate a new root certificate
+/// This will invalidate the old root certificate
+/// and all certificates signed by it (not yet implemented)
 #[utoipa::path(
     post,
     context_path = "/api/v1/certificate",
@@ -166,14 +255,18 @@ async fn generate_root_certificate(
 
     Ok(Json(CACertificateDto::from_root_model(
         model,
-        root.key_pair_as_pem()
-            .map_internal_error(Some("Failed to get key pair"))?,
+        Some(
+            root.key_pair_as_pem()
+                .map_internal_error(Some("Failed to get key pair"))?,
+        ),
     )))
 }
 
 register_module!(
     "/certificate",
-    ca_certificate,
+    get_intermediate,
+    generate_intermediate,
     sign,
-    generate_root_certificate
+    generate_root_certificate,
+    get_root_certificate
 );

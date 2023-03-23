@@ -6,9 +6,11 @@ use utoipa::{Modify, OpenApi};
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::controller::certificate_controller::ca_certificate,
+        crate::controller::certificate_controller::get_intermediate,
+        crate::controller::certificate_controller::generate_intermediate,
         crate::controller::certificate_controller::sign,
         crate::controller::certificate_controller::generate_root_certificate,
+        crate::controller::certificate_controller::get_root_certificate,
         crate::controller::common::health_check,
         crate::controller::user_controller::create,
         crate::controller::user_controller::list,
@@ -37,6 +39,7 @@ use utoipa::{Modify, OpenApi};
             crate::model::create_client_dto::CreateClientDto
         ),
         schemas(crate::model::ca_certificate_dto::CACertificateDto),
+        schemas(crate::model::generate_intermediate_dto::GenerateIntermediateDto),
         schemas(shared::model::signing_request_dto::SigningRequestDto),
     ),
     tags(

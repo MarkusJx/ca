@@ -2411,6 +2411,8 @@ dependencies = [
 name = "shared"
 version = "0.1.0"
 dependencies = [
+ "log",
+ "log4rs",
  "serde",
  "serde_json",
  "utoipa",

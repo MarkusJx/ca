@@ -19,4 +19,10 @@ impl RootCertificateService {
             .await
             .map_internal_error(Some("Failed to insert root certificate"))
     }
+
+    pub async fn find_active(&self) -> WebResult<Option<root_certificate::Model>> {
+        RootCertificateRepository::find_active(&self.0)
+            .await
+            .map_internal_error(Some("Failed to find active root certificate"))
+    }
 }

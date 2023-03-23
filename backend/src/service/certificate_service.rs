@@ -1,11 +1,8 @@
-use crate::config::config::Config;
 use crate::entity::certificate;
 use crate::error::http_response_error::MapHttpResponseError;
 use crate::repository::certificate_repository::CertificateRepository;
-use crate::util::ca_certificate::CACertificate;
 use crate::util::types::WebResult;
-use log::info;
-use sea_orm::{ActiveValue, DatabaseConnection};
+use sea_orm::DatabaseConnection;
 
 pub struct CertificateService(DatabaseConnection);
 
@@ -26,7 +23,7 @@ impl CertificateService {
             .map_internal_error(Some("Failed to find active certificate"))
     }
 
-    pub async fn get_certificate(&self, config: &Config) -> WebResult<certificate::Model> {
+    /*pub async fn get_certificate(&self, config: &Config) -> WebResult<certificate::Model> {
         if let Some(cert) = self.find_active().await? {
             return Ok(cert);
         } else {
@@ -52,5 +49,5 @@ impl CertificateService {
             })
             .await
         }
-    }
+    }*/
 }

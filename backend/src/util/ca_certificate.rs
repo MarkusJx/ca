@@ -12,7 +12,7 @@ use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, KeyUsage, SubjectAlternativeName,
     SubjectKeyIdentifier,
 };
-use openssl::x509::{X509NameBuilder, X509Req, X509};
+use openssl::x509::{X509NameBuilder, X509Req, X509ReqBuilder, X509};
 use sea_orm::prelude::DateTimeWithTimeZone;
 use shared::util::types::BasicResult;
 use std::error::Error;
@@ -23,6 +23,50 @@ pub struct CACertificate {
 }
 
 impl CACertificate {
+    pub fn root_from_pem(cert: &[u8], key_pair: &[u8]) -> BasicResult<Self> {
+        let cert = X509::from_pem(cert)?;
+        let key_pair = PKey::private_key_from_pem(key_pair)?;
+
+        if !cert.verify(&key_pair)? {
+            return Err("Certificate and key pair do not match".into());
+        } else if cert.not_after() < &Asn1Time::days_from_now(0)? {
+            return Err("Certificate is expired".into());
+        }
+
+        Ok(Self { cert, key_pair })
+    }
+
+    pub fn generate_intermediate(config: &Config, root: &CACertificate) -> BasicResult<Self> {
+        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1)?;
+        let private = EcKey::generate(&group)?;
+        let key_pair = PKey::from_ec_key(private)?;
+
+        let mut req_builder = X509ReqBuilder::new()?;
+        req_builder.set_pubkey(key_pair.as_ref())?;
+
+        let mut x509_name = X509NameBuilder::new()?;
+        x509_name.append_entry_by_text("C", &config.ca_cert_country)?;
+        x509_name.append_entry_by_text("ST", &config.ca_cert_state)?;
+        x509_name.append_entry_by_text("L", &config.ca_cert_locality)?;
+        x509_name.append_entry_by_text("O", &config.ca_cert_organization)?;
+        x509_name.append_entry_by_text("OU", &config.ca_cert_organizational_unit)?;
+        x509_name.append_entry_by_text(
+            "CN",
+            &(config.ca_cert_common_name.clone() + " Intermediate"),
+        )?;
+        let x509_name = x509_name.build();
+        req_builder.set_subject_name(&x509_name)?;
+
+        req_builder.sign(key_pair.as_ref(), MessageDigest::sha256())?;
+        let req = req_builder.build();
+        let signed = root.sign_request(&req, &None, true)?;
+
+        Ok(Self {
+            cert: signed,
+            key_pair,
+        })
+    }
+
     /// Make a CA certificate and private key
     pub fn generate(config: &Config) -> BasicResult<Self> {
         let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1)?;
@@ -60,6 +104,7 @@ impl CACertificate {
                 .critical()
                 .key_cert_sign()
                 .crl_sign()
+                .digital_signature()
                 .build()?,
         )?;
 
@@ -78,6 +123,7 @@ impl CACertificate {
         &self,
         req: &X509Req,
         alt_names: &Option<Vec<String>>,
+        is_intermediate: bool,
     ) -> BasicResult<X509> {
         let mut cert_builder = X509::builder()?;
         cert_builder.set_version(2)?;
@@ -89,22 +135,35 @@ impl CACertificate {
         cert_builder.set_serial_number(&serial_number)?;
         cert_builder.set_subject_name(req.subject_name())?;
         cert_builder.set_issuer_name(self.cert.subject_name())?;
-        cert_builder.set_pubkey(&self.key_pair)?;
+        cert_builder.set_pubkey(req.public_key()?.as_ref())?;
         let not_before = Asn1Time::days_from_now(0)?;
         cert_builder.set_not_before(&not_before)?;
         let not_after = Asn1Time::days_from_now(365)?;
         cert_builder.set_not_after(&not_after)?;
 
-        cert_builder.append_extension(BasicConstraints::new().build()?)?;
-
-        cert_builder.append_extension(
-            KeyUsage::new()
-                .critical()
-                .non_repudiation()
-                .digital_signature()
-                .key_encipherment()
-                .build()?,
-        )?;
+        if is_intermediate {
+            cert_builder
+                .append_extension(BasicConstraints::new().critical().ca().pathlen(0).build()?)?;
+            cert_builder.append_extension(
+                KeyUsage::new()
+                    .critical()
+                    .digital_signature()
+                    .key_cert_sign()
+                    .crl_sign()
+                    .build()?,
+            )?;
+        } else {
+            cert_builder.append_extension(BasicConstraints::new().critical().build()?)?;
+            cert_builder.append_extension(
+                KeyUsage::new()
+                    .critical()
+                    .non_repudiation()
+                    .digital_signature()
+                    .key_encipherment()
+                    .key_agreement()
+                    .build()?,
+            )?;
+        }
 
         let subject_key_identifier = SubjectKeyIdentifier::new()
             .build(&cert_builder.x509v3_context(Some(&self.cert), None))?;

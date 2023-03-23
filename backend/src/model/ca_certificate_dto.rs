@@ -36,13 +36,13 @@ impl FromModel<certificate::Model> for CACertificateDto {
 }
 
 impl CACertificateDto {
-    pub fn from_root_model(model: root_certificate::Model, private_key: Vec<u8>) -> Self {
+    pub fn from_root_model(model: root_certificate::Model, private_key: Option<Vec<u8>>) -> Self {
         Self {
             certificate: model.public.to_string(),
             valid_until: model.valid_until.to_rfc3339(),
             created_at: model.created_at.to_rfc3339(),
             root: true,
-            private_key: Some(private_key.to_string()),
+            private_key: private_key.map(|key| key.to_string()),
         }
     }
 }

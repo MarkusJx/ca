@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 /// A certificate signing request
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct NewSigningRequestDto {
     /// The client certificate
     pub request: String,

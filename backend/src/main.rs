@@ -29,10 +29,9 @@ use actix_web::web::scope;
 use actix_web::{middleware as actix_middleware, web, App, HttpServer};
 use config::app_state::AppState;
 use log::info;
-use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Logger, Root};
-use log4rs::Config;
+use shared::util::logger::init_logger;
 use std::io;
+use std::str::FromStr;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -42,24 +41,16 @@ extern crate sea_orm;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-    let stdout = ConsoleAppender::builder().build();
-    let config = Config::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .logger(Logger::builder().build("requests", log::LevelFilter::Debug))
-        .build(
-            Root::builder()
-                .appender("stdout")
-                .build(log::LevelFilter::Debug),
-        )
-        .map_err(|e| e.into())
-        .map_to_io_error()?;
-
-    log4rs::init_config(config)
-        .map_err(|e| e.into())
-        .map_to_io_error()?;
+    init_logger(log::LevelFilter::Debug).map_to_io_error()?;
 
     info!("Loading config");
     let config = config::config::Config::init().map_to_io_error()?;
+    init_logger(
+        log::LevelFilter::from_str(&config.log_level.to_lowercase())
+            .map_err(|e| e.into())
+            .map_to_io_error()?,
+    )
+    .map_to_io_error()?;
 
     info!("Connecting to database");
     let db = database::connect(&config).await.map_to_io_error()?;
@@ -88,6 +79,7 @@ async fn main() -> io::Result<()> {
     .map_to_io_error()?;
 
     info!("Starting http server");
+    let port = config.port;
     HttpServer::new(move || {
         let scope = scope("/api/v1")
             .service(certificate_controller::register())
@@ -102,7 +94,7 @@ async fn main() -> io::Result<()> {
             .allow_any_header()
             .allow_any_method();
 
-        App::new()
+        let mut app = App::new()
             .app_data(web::Data::new(AppState {
                 config: config.clone(),
                 keycloak_service: keycloak_service.clone(),
@@ -118,10 +110,15 @@ async fn main() -> io::Result<()> {
             )
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
-            .service(swagger::get_swagger_ui)
-            .service(scope)
+            .service(scope);
+
+        if config.enable_swagger || cfg!(debug_assertions) {
+            app = app.service(swagger::get_swagger_ui);
+        }
+
+        app
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
