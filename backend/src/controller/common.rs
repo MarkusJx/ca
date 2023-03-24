@@ -26,6 +26,10 @@ async fn health_check(data: web::Data<AppState>) -> WebResult<Json<HealthInfoDto
         keycloak_version: info.and_then(|i| i.system_info).and_then(|i| i.version),
         status: "OK".into(),
         ok: true,
+        is_initialized: Some(
+            data.root_certificate_service.find_active().await?.is_some()
+                && data.certificate_service.find_active().await?.is_some(),
+        ),
     }))
 }
 

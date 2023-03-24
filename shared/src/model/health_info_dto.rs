@@ -16,4 +16,7 @@ pub struct HealthInfoDto {
     /// Whether the API is up and running
     #[schema(example = "true")]
     pub ok: bool,
+    /// Whether the API is initialized
+    #[serde(rename = "isInitialized", skip_serializing_if = "Option::is_none")]
+    pub is_initialized: Option<bool>,
 }

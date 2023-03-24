@@ -13,6 +13,7 @@ export class KeycloakAdapter {
 			});
 		}
 
+		if (this.kc.authenticated) return this.kc;
 		const auth = await this.kc.init({
 			onLoad: requireLogin ? 'login-required' : 'check-sso',
 			checkLoginIframe: false,

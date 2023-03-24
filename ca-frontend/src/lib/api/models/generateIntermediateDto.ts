@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.0.1
  */
 
-export interface ClientCert {
-	cert: string;
-	generated_at: number;
+export interface GenerateIntermediateDto {
+	rootCertificate: string;
 }

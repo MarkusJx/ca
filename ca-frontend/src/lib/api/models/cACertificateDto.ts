@@ -11,6 +11,12 @@ export interface CACertificateDto {
 	certificate: string;
 	/** The time the certificate was created */
 	createdAt: string;
+	/** The private key of the certificate
+This is only returned if the certificate is the root certificate
+and has just been created. */
+	privateKey?: string | null;
+	/** Whether the certificate is the root certificate */
+	root: boolean;
 	/** The time the certificate is valid until */
 	validUntil: string;
 }

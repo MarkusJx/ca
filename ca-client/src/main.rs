@@ -60,7 +60,8 @@ async fn main() -> BasicResult<()> {
                     version: VERSION.to_string(),
                     keycloak_version: None,
                     status: renewer.get_last_error().map(|e| e.to_string()).unwrap_or("OK".into()),
-                    ok: renewer.get_last_error().is_none()
+                    ok: renewer.get_last_error().is_none(),
+                    is_initialized: None,
                 })
             },
             _ => rouille::Response::empty_404()

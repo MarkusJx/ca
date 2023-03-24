@@ -45,8 +45,6 @@ pub struct Config {
     pub admin_user: String,
     #[envconfig(from = "ADMIN_PASSWORD", default = "admin")]
     pub admin_password: String,
-    #[envconfig(from = "CA_CERT_VALIDITY_DAYS", default = "365")]
-    pub ca_cert_validity_days: u32,
     #[envconfig(from = "CA_CERT_COUNTRY", default = "DE")]
     pub ca_cert_country: String,
     #[envconfig(from = "CA_CERT_STATE", default = "Berlin")]
@@ -57,8 +55,19 @@ pub struct Config {
     pub ca_cert_organization: String,
     #[envconfig(from = "CA_CERT_ORGANIZATIONAL_UNIT", default = "CA")]
     pub ca_cert_organizational_unit: String,
-    #[envconfig(from = "CA_CERT_COMMON_NAME", default = "CA")]
-    pub ca_cert_common_name: String,
+    #[envconfig(from = "CA_ROOT_CERT_COMMON_NAME", default = "CA Root")]
+    pub ca_root_cert_common_name: String,
+    #[envconfig(from = "CA_INTERMEDIATE_CERT_COMMON_NAME", default = "CA Intermediate")]
+    pub ca_intermediate_cert_common_name: String,
+    /// The number of days the root certificate is valid
+    #[envconfig(from = "CA_ROOT_CERT_VALIDITY_DAYS", default = "2190")]
+    pub ca_root_cert_validity_days: u32,
+    /// The number of days the intermediate certificate is valid
+    #[envconfig(from = "CA_INTERMEDIATE_CERT_VALIDITY_DAYS", default = "1095")]
+    pub ca_intermediate_cert_validity_days: u32,
+    /// The number of days a certificate signed by this CA is valid
+    #[envconfig(from = "CERT_VALIDITY_DAYS", default = "31")]
+    pub cert_validity_days: u32,
 }
 
 impl Config {

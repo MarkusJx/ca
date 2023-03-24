@@ -48,11 +48,11 @@
 				"security": [{ "oauth2": [] }]
 			}
 		},
-		"/api/v1/certificate/ca": {
+		"/api/v1/certificate/intermediate": {
 			"get": {
 				"tags": ["Certificates"],
-				"summary": "Get the server's CA certificate",
-				"description": "Get the server's CA certificate",
+				"summary": "Get the CA's intermediate certificate",
+				"description": "Get the CA's intermediate certificate\nThis is the certificate that is used to sign the client certificates",
 				"operationId": "getCaCertificate",
 				"responses": {
 					"200": {
@@ -60,6 +60,57 @@
 						"content": {
 							"application/json": {
 								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"404": { "description": "Intermediate certificate does not exist" },
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/certificate/intermediate/generate": {
+			"post": {
+				"tags": ["Certificates"],
+				"operationId": "generateIntermediate",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GenerateIntermediateDto"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
 							}
 						}
 					},
@@ -71,7 +122,78 @@
 							}
 						}
 					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/certificate/root": {
+			"get": {
+				"tags": ["Certificates"],
+				"summary": "Get the root CA certificate",
+				"description": "Get the root CA certificate\nOnly returns the public key as the private key isn't stored\non the server",
+				"operationId": "getRootCertificate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"404": { "description": "Root certificate does not exist" },
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
 				}
+			}
+		},
+		"/api/v1/certificate/root/generate": {
+			"post": {
+				"tags": ["Certificates"],
+				"summary": "Generate a new root certificate",
+				"description": "Generate a new root certificate\nThis will invalidate the old root certificate\nand all certificates signed by it (not yet implemented)",
+				"operationId": "generateRootCertificate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
 			}
 		},
 		"/api/v1/certificate/sign": {
@@ -884,7 +1006,7 @@
 		"schemas": {
 			"CACertificateDto": {
 				"type": "object",
-				"required": ["certificate", "validUntil", "createdAt"],
+				"required": ["certificate", "validUntil", "createdAt", "root"],
 				"properties": {
 					"certificate": {
 						"type": "string",
@@ -893,6 +1015,15 @@
 					"createdAt": {
 						"type": "string",
 						"description": "The time the certificate was created"
+					},
+					"privateKey": {
+						"type": "string",
+						"description": "The private key of the certificate\nThis is only returned if the certificate is the root certificate\nand has just been created.",
+						"nullable": true
+					},
+					"root": {
+						"type": "boolean",
+						"description": "Whether the certificate is the root certificate"
 					},
 					"validUntil": {
 						"type": "string",
@@ -1012,10 +1143,20 @@
 					}
 				}
 			},
+			"GenerateIntermediateDto": {
+				"type": "object",
+				"required": ["rootCertificate"],
+				"properties": { "rootCertificate": { "type": "string" } }
+			},
 			"HealthInfoDto": {
 				"type": "object",
 				"required": ["version", "status", "ok"],
 				"properties": {
+					"isInitialized": {
+						"type": "boolean",
+						"description": "Whether the API is initialized",
+						"nullable": true
+					},
 					"keycloakVersion": {
 						"type": "string",
 						"description": "The current version of keycloak",

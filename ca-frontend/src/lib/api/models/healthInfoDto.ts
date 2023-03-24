@@ -7,6 +7,8 @@
  */
 
 export interface HealthInfoDto {
+	/** Whether the API is initialized */
+	isInitialized?: boolean | null;
 	/** The current version of keycloak */
 	keycloakVersion?: string | null;
 	/** Whether the API is up and running */

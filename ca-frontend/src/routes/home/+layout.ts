@@ -4,10 +4,14 @@ import type Keycloak from 'keycloak-js';
 import type { LayoutLoad } from './$types';
 
 export const load = (async ({ parent }) => {
-	const { keycloak } = await parent();
 	let keycloakPromise: Promise<Keycloak | null> | null = null;
-	if (browser && !keycloak) {
-		keycloakPromise = KeycloakAdapter.init(true);
+	let keycloak: Keycloak | null = null;
+	if (browser) {
+		keycloak = (await parent()).keycloak ?? null;
+
+		if (!keycloak) {
+			keycloakPromise = KeycloakAdapter.init(true);
+		}
 	}
 
 	return {

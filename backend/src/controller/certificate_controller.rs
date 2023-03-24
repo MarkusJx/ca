@@ -134,7 +134,7 @@ async fn sign(
         .map_internal_error(Some("Failed to map model"))?;
 
     let signed = ca_cert
-        .sign_request(&req, &request.alternative_names, false)
+        .sign_request(&req, &request.alternative_names, &data.config, false)
         .map_internal_error(None)?;
 
     let req = data
@@ -234,7 +234,7 @@ async fn generate_root_certificate(
     data: Data<AppState>,
     claims: KeycloakUserClaims<AdminRole>,
 ) -> WebResult<Json<CACertificateDto>> {
-    let root = CACertificate::generate(&data.config)
+    let root = CACertificate::generate_root(&data.config)
         .map_internal_error(Some("Failed to generate root certificate"))?;
     let valid_until = root
         .valid_until()

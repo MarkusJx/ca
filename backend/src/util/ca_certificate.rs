@@ -50,16 +50,13 @@ impl CACertificate {
         x509_name.append_entry_by_text("L", &config.ca_cert_locality)?;
         x509_name.append_entry_by_text("O", &config.ca_cert_organization)?;
         x509_name.append_entry_by_text("OU", &config.ca_cert_organizational_unit)?;
-        x509_name.append_entry_by_text(
-            "CN",
-            &(config.ca_cert_common_name.clone() + " Intermediate"),
-        )?;
+        x509_name.append_entry_by_text("CN", &config.ca_intermediate_cert_common_name)?;
         let x509_name = x509_name.build();
         req_builder.set_subject_name(&x509_name)?;
 
         req_builder.sign(key_pair.as_ref(), MessageDigest::sha256())?;
         let req = req_builder.build();
-        let signed = root.sign_request(&req, &None, true)?;
+        let signed = root.sign_request(&req, &None, config, true)?;
 
         Ok(Self {
             cert: signed,
@@ -68,7 +65,7 @@ impl CACertificate {
     }
 
     /// Make a CA certificate and private key
-    pub fn generate(config: &Config) -> BasicResult<Self> {
+    pub fn generate_root(config: &Config) -> BasicResult<Self> {
         let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1)?;
         let private = EcKey::generate(&group)?;
         let key_pair = PKey::from_ec_key(private)?;
@@ -79,7 +76,7 @@ impl CACertificate {
         x509_name.append_entry_by_text("L", &config.ca_cert_locality)?;
         x509_name.append_entry_by_text("O", &config.ca_cert_organization)?;
         x509_name.append_entry_by_text("OU", &config.ca_cert_organizational_unit)?;
-        x509_name.append_entry_by_text("CN", &config.ca_cert_common_name)?;
+        x509_name.append_entry_by_text("CN", &config.ca_root_cert_common_name)?;
         let x509_name = x509_name.build();
 
         let mut cert_builder = X509::builder()?;
@@ -95,7 +92,7 @@ impl CACertificate {
         cert_builder.set_pubkey(&key_pair)?;
         let not_before = Asn1Time::days_from_now(0)?;
         cert_builder.set_not_before(&not_before)?;
-        let not_after = Asn1Time::days_from_now(config.ca_cert_validity_days)?;
+        let not_after = Asn1Time::days_from_now(config.ca_root_cert_validity_days)?;
         cert_builder.set_not_after(&not_after)?;
 
         cert_builder.append_extension(BasicConstraints::new().critical().ca().build()?)?;
@@ -123,6 +120,7 @@ impl CACertificate {
         &self,
         req: &X509Req,
         alt_names: &Option<Vec<String>>,
+        config: &Config,
         is_intermediate: bool,
     ) -> BasicResult<X509> {
         let mut cert_builder = X509::builder()?;
@@ -138,7 +136,11 @@ impl CACertificate {
         cert_builder.set_pubkey(req.public_key()?.as_ref())?;
         let not_before = Asn1Time::days_from_now(0)?;
         cert_builder.set_not_before(&not_before)?;
-        let not_after = Asn1Time::days_from_now(365)?;
+        let not_after = Asn1Time::days_from_now(if is_intermediate {
+            config.ca_intermediate_cert_validity_days
+        } else {
+            config.cert_validity_days
+        })?;
         cert_builder.set_not_after(&not_after)?;
 
         if is_intermediate {
