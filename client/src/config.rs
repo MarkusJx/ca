@@ -28,6 +28,8 @@ pub struct Config {
     pub alt_names: Option<String>,
     #[envconfig(from = "RENEW_THRESHOLD_DAYS", default = "1")]
     pub renew_threshold_days: u32,
+    #[envconfig(from = "SERVER_PORT", default = "8080")]
+    pub server_port: u16,
 }
 
 impl Config {

@@ -81,60 +81,65 @@ impl CertificateRenewer {
 
     pub fn renew_periodically(&mut self) {
         let arc = self.data.clone();
-        tokio::spawn(async move { loop {
-            let mut data = arc.lock().unwrap();
+        tokio::spawn(async move {
+            loop {
+                let mut data = arc.lock().unwrap();
 
-            info!("Checking token");
-            if let Err(e) = jsonwebtoken::decode_header(&data.config.token) {
-                error!("Token invalid: {}", e);
-                data.set_last_error(RenewalErrorCode::TokenInvalid);
+                info!("Checking token");
+                if let Err(e) = jsonwebtoken::decode_header(&data.config.token) {
+                    error!("Token invalid: {}", e);
+                    data.set_last_error(RenewalErrorCode::TokenInvalid);
 
-                if let Err(e) = data.reload_config() {
-                    error!("Failed to reload config: {}", e);
-                }
-
-                drop(data);
-                info!("Sleeping for 10 minutes");
-                thread::sleep(Duration::from_secs(10 * 60));
-                continue;
-            }
-
-            let expires_in = match data.certificate.expires_in_secs() {
-                Ok(Some(expires_in)) => {
-                    if expires_in < (data.config.renew_threshold_days * 24 * 60 * 60) as u64 {
-                        if let Err(e) = block_on(Self::renew(&mut data)) {
-                            data.set_last_error(RenewalErrorCode::ApiAccessFailed);
-                            error!("Failed to renew certificate: {}", e);
-                        } else {
-                            data.reset_last_error();
-                        }
-                    } else {
-                        info!("Certificate is valid for {} days", expires_in / 24 / 60 / 60);
-                        data.reset_last_error();
-                    }
-
-                    Some(expires_in)
-                }
-                Ok(None) => {
-                    if let Err(e) = block_on(Self::renew(&mut data)) {
-                        data.set_last_error(RenewalErrorCode::ApiAccessFailed);
-                        error!("Failed to renew certificate: {}", e);
+                    if let Err(e) = data.reload_config() {
+                        error!("Failed to reload config: {}", e);
                     }
 
                     drop(data);
+                    info!("Sleeping for 10 minutes");
+                    thread::sleep(Duration::from_secs(10 * 60));
                     continue;
                 }
-                Err(e) => {
-                    data.set_last_error(RenewalErrorCode::FailedToGetCertificateExpiry);
-                    error!("Failed to get certificate expiration: {}", e);
-                    None
-                }
-            };
 
-            drop(data);
-            let expires_in = expires_in.unwrap_or(10 * 60);
-            info!("Sleeping for {} hours", expires_in / 3600);
-            thread::sleep(Duration::from_secs(expires_in));
-        }});
+                let expires_in = match data.certificate.expires_in_secs() {
+                    Ok(Some(expires_in)) => {
+                        if expires_in < (data.config.renew_threshold_days * 24 * 60 * 60) as u64 {
+                            if let Err(e) = block_on(Self::renew(&mut data)) {
+                                data.set_last_error(RenewalErrorCode::ApiAccessFailed);
+                                error!("Failed to renew certificate: {}", e);
+                            } else {
+                                data.reset_last_error();
+                            }
+                        } else {
+                            info!(
+                                "Certificate is valid for {} days",
+                                expires_in / 24 / 60 / 60
+                            );
+                            data.reset_last_error();
+                        }
+
+                        Some(expires_in)
+                    }
+                    Ok(None) => {
+                        if let Err(e) = block_on(Self::renew(&mut data)) {
+                            data.set_last_error(RenewalErrorCode::ApiAccessFailed);
+                            error!("Failed to renew certificate: {}", e);
+                        }
+
+                        drop(data);
+                        continue;
+                    }
+                    Err(e) => {
+                        data.set_last_error(RenewalErrorCode::FailedToGetCertificateExpiry);
+                        error!("Failed to get certificate expiration: {}", e);
+                        None
+                    }
+                };
+
+                drop(data);
+                let expires_in = expires_in.unwrap_or(10 * 60);
+                info!("Sleeping for {} hours", expires_in / 3600);
+                thread::sleep(Duration::from_secs(expires_in));
+            }
+        });
     }
 }

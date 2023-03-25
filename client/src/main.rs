@@ -49,11 +49,11 @@ async fn main() -> BasicResult<()> {
         }
     };
 
-    let mut renewer = CertificateRenewer::new(api, config, cert);
+    let mut renewer = CertificateRenewer::new(api, config.clone(), cert);
     renewer.renew_periodically();
 
     info!("Starting http server");
-    rouille::start_server("0.0.0.0:8091", move |request| {
+    rouille::start_server(format!("0.0.0.0:{}", config.server_port), move |request| {
         router!(request,
             (GET) (/api/v1/health) => {
                 rouille::Response::json(&HealthInfoDto {
