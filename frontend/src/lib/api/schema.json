@@ -1,0 +1,1267 @@
+{
+	"openapi": "3.0.3",
+	"info": {
+		"title": "Certificate Authority API",
+		"description": "A simple API for managing certificates",
+		"license": { "name": "MIT", "url": "https://opensource.org/licenses/MIT" },
+		"version": "0.0.1"
+	},
+	"paths": {
+		"/api/v1/admin/roles": {
+			"get": {
+				"tags": ["Admin"],
+				"operationId": "listRoles",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "type": "array", "items": { "type": "string" } }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/certificate/intermediate": {
+			"get": {
+				"tags": ["Certificates"],
+				"summary": "Get the CA's intermediate certificate",
+				"description": "Get the CA's intermediate certificate\nThis is the certificate that is used to sign the client certificates",
+				"operationId": "getCaCertificate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"404": { "description": "Intermediate certificate does not exist" },
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/certificate/intermediate/generate": {
+			"post": {
+				"tags": ["Certificates"],
+				"operationId": "generateIntermediate",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GenerateIntermediateDto"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/certificate/root": {
+			"get": {
+				"tags": ["Certificates"],
+				"summary": "Get the root CA certificate",
+				"description": "Get the root CA certificate\nOnly returns the public key as the private key isn't stored\non the server",
+				"operationId": "getRootCertificate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"404": { "description": "Root certificate does not exist" },
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/certificate/root/generate": {
+			"post": {
+				"tags": ["Certificates"],
+				"summary": "Generate a new root certificate",
+				"description": "Generate a new root certificate\nThis will invalidate the old root certificate\nand all certificates signed by it (not yet implemented)",
+				"operationId": "generateRootCertificate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/CACertificateDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/certificate/sign": {
+			"post": {
+				"tags": ["Certificates"],
+				"summary": "Sign a certificate signing request",
+				"description": "Sign a certificate signing request\nusing the server's CA certificate",
+				"operationId": "signCertificate",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/NewSigningRequestDto" }
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/SigningRequestDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "jwt": [] }]
+			}
+		},
+		"/api/v1/client": {
+			"post": {
+				"tags": ["Clients"],
+				"operationId": "createClient",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/CreateClientDto" }
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ClientDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/client/list": {
+			"get": {
+				"tags": ["Clients"],
+				"operationId": "listClients",
+				"parameters": [
+					{
+						"name": "includeInactive",
+						"in": "query",
+						"description": "Whether to include inactive clients in the result.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/ClientDto" }
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/client/regenerate/{id}": {
+			"put": {
+				"tags": ["Clients"],
+				"operationId": "regenerateClientToken",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "Id of the client to update",
+						"required": true,
+						"schema": { "type": "string" }
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/CreateClientDto" }
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ClientDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/client/{id}": {
+			"get": {
+				"tags": ["Clients"],
+				"operationId": "getClientById",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "Client id",
+						"required": true,
+						"schema": { "type": "string" }
+					},
+					{
+						"name": "includeInactive",
+						"in": "query",
+						"description": "Whether to include inactive clients in the result.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ClientDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			},
+			"delete": {
+				"tags": ["Clients"],
+				"operationId": "deleteClient",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "Id of the client to delete",
+						"required": true,
+						"schema": { "type": "string" }
+					},
+					{
+						"name": "deleteInDatabase",
+						"in": "query",
+						"description": "Whether to delete the client rather than just deactivating it.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"204": { "description": "Client deleted" },
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/health": {
+			"get": {
+				"tags": ["Common"],
+				"operationId": "healthCheck",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HealthInfoDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/signing-request": {
+			"get": {
+				"tags": ["Signing requests"],
+				"operationId": "getSigningRequests",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/SigningRequestDto" }
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/signing-request/{id}": {
+			"get": {
+				"tags": ["Signing requests"],
+				"operationId": "getSigningRequestsByClientId",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The id of the client",
+						"required": true,
+						"schema": { "type": "string" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/SigningRequestDto" }
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/user": {
+			"post": {
+				"tags": ["Users"],
+				"operationId": "createUser",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/CreateUserDto" }
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/UserDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/user/by-name/{name}": {
+			"get": {
+				"tags": ["Users"],
+				"operationId": "getUserByName",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"description": "Name of the user to find",
+						"required": true,
+						"schema": { "type": "string" }
+					},
+					{
+						"name": "includeInactive",
+						"in": "query",
+						"description": "Whether to include inactive users in the result.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/UserDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/user/list": {
+			"get": {
+				"tags": ["Users"],
+				"operationId": "listUsers",
+				"parameters": [
+					{
+						"name": "includeInactive",
+						"in": "query",
+						"description": "Whether to include inactive users in the result.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/UserDto" }
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
+		"/api/v1/user/{id}": {
+			"get": {
+				"tags": ["Users"],
+				"operationId": "getUserById",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "Id of the user to find",
+						"required": true,
+						"schema": { "type": "string" }
+					},
+					{
+						"name": "includeInactive",
+						"in": "query",
+						"description": "Whether to include inactive users in the result.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/UserDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			},
+			"delete": {
+				"tags": ["Users"],
+				"operationId": "deleteUser",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "Id of the user to delete",
+						"required": true,
+						"schema": { "type": "string" }
+					},
+					{
+						"name": "deleteInDatabase",
+						"in": "query",
+						"description": "Whether to delete the user rather than just deactivating it.\nDefaults to false.",
+						"required": false,
+						"schema": { "type": "boolean" }
+					}
+				],
+				"responses": {
+					"204": { "description": "User deleted" },
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"CACertificateDto": {
+				"type": "object",
+				"required": ["certificate", "validUntil", "createdAt", "root"],
+				"properties": {
+					"certificate": {
+						"type": "string",
+						"description": "The certificate pem string"
+					},
+					"createdAt": {
+						"type": "string",
+						"description": "The time the certificate was created"
+					},
+					"privateKey": {
+						"type": "string",
+						"description": "The private key of the certificate\nThis is only returned if the certificate is the root certificate\nand has just been created.",
+						"nullable": true
+					},
+					"root": {
+						"type": "boolean",
+						"description": "Whether the certificate is the root certificate"
+					},
+					"validUntil": {
+						"type": "string",
+						"description": "The time the certificate is valid until"
+					}
+				}
+			},
+			"ClientDto": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"displayName",
+					"userId",
+					"tokenHash",
+					"active",
+					"validUntil",
+					"createdAt",
+					"updatedAt"
+				],
+				"properties": {
+					"active": {
+						"type": "boolean",
+						"description": "Whether the client is active"
+					},
+					"createdAt": {
+						"type": "string",
+						"description": "The time the client was created"
+					},
+					"displayName": {
+						"type": "string",
+						"description": "The client display name"
+					},
+					"id": { "type": "string", "description": "The client id" },
+					"name": { "type": "string", "description": "The client name" },
+					"token": {
+						"type": "string",
+						"description": "The client token. Only returned when creating a new client.",
+						"nullable": true
+					},
+					"tokenHash": {
+						"type": "string",
+						"description": "The client token hash"
+					},
+					"updatedAt": {
+						"type": "string",
+						"description": "The time the client was last updated"
+					},
+					"userId": {
+						"type": "string",
+						"description": "The id of the user that owns the client"
+					},
+					"validUntil": {
+						"type": "string",
+						"description": "The time the client is valid until"
+					}
+				}
+			},
+			"CreateClientDto": {
+				"type": "object",
+				"required": ["name", "validUntil"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The client name\nOnly required when creating a new client",
+						"nullable": true
+					},
+					"validUntil": { "type": "string", "example": "2025-01-01T00:00:00Z" }
+				}
+			},
+			"CreateUserDto": {
+				"type": "object",
+				"required": [
+					"name",
+					"email",
+					"firstName",
+					"lastName",
+					"password",
+					"isPasswordTemporary",
+					"roles"
+				],
+				"properties": {
+					"email": { "type": "string", "nullable": true },
+					"firstName": { "type": "string", "nullable": true },
+					"isPasswordTemporary": { "type": "boolean", "nullable": true },
+					"lastName": { "type": "string", "nullable": true },
+					"name": { "type": "string" },
+					"password": { "type": "string" },
+					"roles": {
+						"type": "array",
+						"items": { "type": "string" },
+						"nullable": true
+					}
+				}
+			},
+			"ErrorDto": {
+				"type": "object",
+				"required": ["code", "error"],
+				"properties": {
+					"code": {
+						"type": "integer",
+						"format": "int32",
+						"description": "The error code",
+						"example": 500,
+						"minimum": 0.0
+					},
+					"error": {
+						"type": "string",
+						"description": "The error as string",
+						"example": "Internal Server Error"
+					},
+					"message": {
+						"type": "string",
+						"description": "The error message.\nOnly returned in debug mode.",
+						"example": "Something went wrong",
+						"nullable": true
+					}
+				}
+			},
+			"GenerateIntermediateDto": {
+				"type": "object",
+				"required": ["rootCertificate"],
+				"properties": { "rootCertificate": { "type": "string" } }
+			},
+			"HealthInfoDto": {
+				"type": "object",
+				"required": ["version", "status", "ok"],
+				"properties": {
+					"isInitialized": {
+						"type": "boolean",
+						"description": "Whether the API is initialized",
+						"nullable": true
+					},
+					"keycloakVersion": {
+						"type": "string",
+						"description": "The current version of keycloak",
+						"example": "1.0.0",
+						"nullable": true
+					},
+					"ok": {
+						"type": "boolean",
+						"description": "Whether the API is up and running",
+						"example": "true"
+					},
+					"status": {
+						"type": "string",
+						"description": "The current status of the API",
+						"example": "OK"
+					},
+					"version": {
+						"type": "string",
+						"description": "The current version of the API",
+						"example": "1.0.0"
+					}
+				}
+			},
+			"NewSigningRequestDto": {
+				"type": "object",
+				"description": "A certificate signing request",
+				"required": ["request"],
+				"properties": {
+					"alternativeNames": {
+						"type": "array",
+						"items": { "type": "string" },
+						"description": "Alternative names for the certificate",
+						"nullable": true
+					},
+					"request": {
+						"type": "string",
+						"description": "The client certificate"
+					}
+				}
+			},
+			"SigningRequestDto": {
+				"type": "object",
+				"required": [
+					"clientId",
+					"hash",
+					"issuedAt",
+					"serialNumber",
+					"subjectName"
+				],
+				"properties": {
+					"certificate": { "type": "string", "nullable": true },
+					"clientId": { "type": "string" },
+					"hash": { "type": "string" },
+					"issuedAt": { "type": "string" },
+					"serialNumber": { "type": "string" },
+					"subjectName": { "type": "string" }
+				}
+			},
+			"UserDto": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"displayName",
+					"active",
+					"email",
+					"firstName",
+					"lastName",
+					"roles",
+					"createdAt",
+					"updatedAt"
+				],
+				"properties": {
+					"active": { "type": "boolean" },
+					"createdAt": { "type": "string" },
+					"displayName": { "type": "string" },
+					"email": { "type": "string", "nullable": true },
+					"firstName": { "type": "string", "nullable": true },
+					"id": { "type": "string" },
+					"lastName": { "type": "string", "nullable": true },
+					"name": { "type": "string" },
+					"roles": { "type": "array", "items": { "type": "string" } },
+					"updatedAt": { "type": "string" }
+				}
+			}
+		},
+		"securitySchemes": {
+			"jwt": { "type": "apiKey", "in": "header", "name": "Authorization" },
+			"oauth2": {
+				"type": "oauth2",
+				"flows": {
+					"implicit": {
+						"authorizationUrl": "http://localhost:8090/realms/ca/protocol/openid-connect/auth",
+						"scopes": {}
+					}
+				}
+			}
+		}
+	},
+	"tags": [
+		{ "name": "Certificates", "description": "Certificate endpoints" },
+		{ "name": "Common", "description": "Common endpoints" },
+		{ "name": "Users", "description": "User endpoints" },
+		{ "name": "Clients", "description": "Client endpoints" },
+		{ "name": "Signing requests", "description": "Signing Request endpoints" },
+		{ "name": "Admin", "description": "Admin endpoints" }
+	]
+}

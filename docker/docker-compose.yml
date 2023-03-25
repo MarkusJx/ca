@@ -1,0 +1,77 @@
+version: '3'
+
+services:
+  backend:
+    image: backend
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: my_ultra_secure_secret
+      JWT_EXPIRES_IN: 60m
+      JWT_MAX_AGE: 60
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+    depends_on:
+      postgres:
+        condition: service_started
+      keycloak:
+          condition: service_healthy
+    networks:
+      - ca
+  frontend:
+    image: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_APP_API_BASE_URL: http://localhost:8080
+      VITE_KEYCLOAK_URL: http://localhost:8090
+      VITE_KEYCLOAK_REALM: ca
+      VITE_KEYCLOAK_CLIENT_ID: ca-backend
+  postgres:
+    image: postgres:13
+    container_name: ca-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_MULTIPLE_DATABASES: keycloak,postgres:ca,postgres
+    volumes:
+      - ./create-databases.sh:/docker-entrypoint-initdb.d/create-databases.sh
+    networks:
+      - ca
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.0
+    command: start-dev
+    container_name: ca-keycloak
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: true
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: 5432
+      DB_DATABASE: postgres
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    depends_on:
+      - postgres
+    networks:
+      - ca
+    healthcheck:
+      test: ["CMD-SHELL", "bash /scripts/healthcheck.sh"]
+      interval: 5s
+      retries: 5
+      timeout: 2s
+    volumes:
+      - ./healthcheck.sh:/scripts/healthcheck.sh
+
+networks:
+  ca:
