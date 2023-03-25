@@ -30,6 +30,10 @@ pub struct Config {
     pub renew_threshold_days: u32,
     #[envconfig(from = "SERVER_PORT", default = "8080")]
     pub server_port: u16,
+    #[envconfig(from = "ENABLE_SERVER", default = "true")]
+    pub enable_server: bool,
+    #[envconfig(from = "LOG_LEVEL", default = "info")]
+    pub log_level: String,
 }
 
 impl Config {

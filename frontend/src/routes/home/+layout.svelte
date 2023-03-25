@@ -60,11 +60,12 @@
 	</Drawer>
 
 	<AppContent>
-		<TopAppBar variant="static">
+		<TopAppBar variant="static" style="background-color: #212125; color: white">
 			<Row>
 				<Section>
 					<Wrapper>
 						<IconButton
+							style="color: rgba(255, 255, 255, 0.87)"
 							class="material-icons"
 							on:click={() => ($sideDrawerOpen = !$sideDrawerOpen)}
 						>
@@ -78,6 +79,7 @@
 					{#if route !== '/home'}
 						<Wrapper>
 							<IconButton
+								style="color: rgba(255, 255, 255, 0.87)"
 								class="material-icons"
 								on:click={() => (location.href = '/home')}
 							>
@@ -89,6 +91,7 @@
 					<div>
 						<Wrapper>
 							<IconButton
+								style="color: rgba(255, 255, 255, 0.87)"
 								class="material-icons"
 								aria-label="User actions"
 								on:click={() => menu.setOpen(true)}
