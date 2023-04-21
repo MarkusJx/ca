@@ -35,6 +35,12 @@ impl ClientService {
             .map_internal_error(Some("Failed to find client by id"))
     }
 
+    pub async fn find_user_client(&self, user_id: &Uuid) -> WebResult<Option<client::Model>> {
+        ClientRepository::find_user_client(&self.0, user_id)
+            .await
+            .map_internal_error(Some("Failed to find user client"))
+    }
+
     pub async fn generate_id(&self) -> WebResult<Uuid> {
         let mut id = Uuid::new_v4();
         while let Some(_) = self.find_by_id(&id, true).await? {

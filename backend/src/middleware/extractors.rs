@@ -1,16 +1,40 @@
 use crate::config::app_state::AppState;
-use crate::entity::{client, user};
+use crate::entity::{client, token, user};
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::jwt_middleware::JwtMiddleware;
 use crate::middleware::keycloak_roles::KeycloakRoles;
+use crate::util::types::WebResult;
 use actix_web::dev::Payload;
 use actix_web::{web, Error, FromRequest};
 use actix_web_middleware_keycloak_auth::StandardKeycloakClaims;
 use futures_util::future::LocalBoxFuture;
+use openssl::sha::Sha256;
+use sea_orm::{ActiveValue, TryIntoModel};
+use shared::util::traits::u8_vec_to_string::U8VecToString;
+use uuid::Uuid;
 
 pub struct KeycloakUserClaims<R: KeycloakRoles> {
     pub user: user::Model,
     _roles: std::marker::PhantomData<R>,
+}
+
+impl<R: KeycloakRoles> KeycloakUserClaims<R> {
+    pub fn get_user_token(&self) -> WebResult<token::Model> {
+        let hash = {
+            let mut hash = Sha256::new();
+            hash.update(self.user.id.as_bytes());
+            hash.finish().to_vec().to_hex_string("")
+        };
+
+        token::ActiveModel {
+            id: ActiveValue::Set(Uuid::nil()),
+            client_id: ActiveValue::Set(self.user.id.clone()),
+            active: ActiveValue::Set(true),
+            token_hash: ActiveValue::Set(hash),
+        }
+        .try_into_model()
+        .map_internal_error(Some("Failed to create token model"))
+    }
 }
 
 impl<R> FromRequest for KeycloakUserClaims<R>

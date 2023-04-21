@@ -39,6 +39,18 @@ impl ClientRepository {
         q.one(db).await
     }
 
+    pub async fn find_user_client<C: ConnectionTrait>(
+        db: &C,
+        user_id: &Uuid,
+    ) -> DbResult<Option<client::Model>> {
+        client::Entity::find()
+            .filter(client::Column::UserId.eq(user_id.clone()))
+            .filter(client::Column::IsUserClient.eq(true))
+            .filter(client::Column::Active.eq(true))
+            .one(db)
+            .await
+    }
+
     pub async fn find_all_by_user<C: ConnectionTrait>(
         db: &C,
         user_id: &Uuid,

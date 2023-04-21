@@ -1,6 +1,7 @@
 use crate::repository::client_repository::ClientRepository;
 use crate::repository::signing_request_repository::SigningRequestRepository;
 use crate::repository::token_repository::TokenRepository;
+use crate::repository::user_repository::UserRepository;
 use crate::util::types::DbResult;
 use async_trait::async_trait;
 use chrono::Utc;
@@ -19,7 +20,8 @@ pub struct Model {
     pub name: String,
     pub original_name: String,
     pub active: bool,
-    pub valid_until: DateTimeWithTimeZone,
+    pub is_user_client: bool,
+    pub valid_until: Option<DateTimeWithTimeZone>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -77,6 +79,18 @@ impl ActiveModelBehavior for ActiveModel {
             self.created_at = ActiveValue::Set(Utc::now().into());
         }
 
+        if self.is_user_client.is_not_set() {
+            self.is_user_client = ActiveValue::Set(false);
+        }
+
+        if !*self.is_user_client.as_ref()
+            && (self.valid_until.is_not_set() || self.valid_until.as_ref().is_none())
+        {
+            return Err(DbErr::Custom(
+                "valid_until must be set for non-user clients".to_string(),
+            ));
+        }
+
         if !self.active.as_ref() {
             join_all(
                 SigningRequestRepository::find_all_by_client(db, self.id.as_ref())
@@ -101,6 +115,16 @@ impl ActiveModelBehavior for ActiveModel {
     where
         C: ConnectionTrait,
     {
+        if *self.is_user_client.as_ref()
+            && UserRepository::find_by_id(db, self.user_id.as_ref(), true)
+                .await?
+                .is_some()
+        {
+            return Err(DbErr::Custom(
+                "User clients with existing users cannot be deleted".to_string(),
+            ));
+        }
+
         join_all(
             SigningRequestRepository::find_all_by_client(db, self.id.as_ref())
                 .await?

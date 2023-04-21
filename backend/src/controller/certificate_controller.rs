@@ -3,7 +3,7 @@ use crate::entity::{certificate, root_certificate, signing_request};
 use crate::error::http_response_error::{HttpResponseError, MapHttpResponseError};
 use crate::middleware::extractors::{JwtClientClaims, KeycloakUserClaims};
 use crate::middleware::keycloak_middleware;
-use crate::middleware::keycloak_roles::AdminRole;
+use crate::middleware::keycloak_roles::{AdminRole, NoRoles};
 use crate::model::ca_certificate_dto::CACertificateDto;
 use crate::model::generate_intermediate_dto::GenerateIntermediateDto;
 use crate::register_module;
@@ -18,6 +18,7 @@ use sea_orm::{ActiveValue, TryIntoModel};
 use shared::model::new_signing_request_dto::NewSigningRequestDto;
 use shared::model::signing_request_dto::SigningRequestDto;
 use shared::util::traits::u8_vec_to_string::U8VecToString;
+use uuid::Uuid;
 
 /// Get the CA's intermediate certificate
 /// This is the certificate that is used to sign the client certificates
@@ -97,31 +98,11 @@ async fn generate_intermediate(
     Ok(Json(CACertificateDto::from_model(model)))
 }
 
-/// Sign a certificate signing request
-/// using the server's CA certificate
-#[utoipa::path(
-    post,
-    context_path = "/api/v1/certificate",
-    tag = "Certificates",
-    operation_id = "signCertificate",
-    request_body = NewSigningRequestDto,
-    responses(
-        (status = 200, description = "Ok", body = SigningRequestDto),
-        (status = 400, description = "Bad request", body = ErrorDto),
-        (status = 401, description = "Unauthorized", body = ErrorDto),
-        (status = 500, description = "Internal server error", body = ErrorDto),
-    ),
-    security(
-        ("jwt" = [])
-    )
-)]
-#[post("/sign")]
-async fn sign(
+async fn sign_certificate(
     request: Json<NewSigningRequestDto>,
     data: Data<AppState>,
-    claims: JwtClientClaims,
+    client_id: Uuid,
 ) -> WebResult<Json<SigningRequestDto>> {
-    println!("Signing request");
     let req = X509Req::from_pem(request.request.as_bytes()).map_internal_error(None)?;
     let ca_cert: CACertificate = data
         .certificate_service
@@ -141,7 +122,7 @@ async fn sign(
         .signing_request_service
         .save(signing_request::ActiveModel {
             id: ActiveValue::NotSet,
-            client_id: ActiveValue::Set(claims.client.id),
+            client_id: ActiveValue::Set(client_id),
             hash: ActiveValue::Set(
                 signed
                     .digest(MessageDigest::sha256())
@@ -186,6 +167,66 @@ async fn sign(
             .to_string(),
     );
     Ok(Json(dto))
+}
+
+/// Sign a certificate signing request
+/// using the server's CA certificate
+#[utoipa::path(
+    post,
+    context_path = "/api/v1/certificate",
+    tag = "Certificates",
+    operation_id = "signCertificate",
+    request_body = NewSigningRequestDto,
+    responses(
+        (status = 200, description = "Ok", body = SigningRequestDto),
+        (status = 400, description = "Bad request", body = ErrorDto),
+        (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+    security(
+        ("jwt" = [])
+    )
+)]
+#[post("/sign")]
+async fn sign(
+    request: Json<NewSigningRequestDto>,
+    data: Data<AppState>,
+    claims: JwtClientClaims,
+) -> WebResult<Json<SigningRequestDto>> {
+    sign_certificate(request, data, claims.client.id).await
+}
+
+#[utoipa::path(
+    post,
+    tag = "Users",
+    context_path = "/api/v1",
+    request_body = NewSigningRequestDto,
+    operation_id = "userSignCertificate",
+    responses(
+        (status = 200, description = "Ok", body = SigningRequestDto),
+        (status = 400, description = "Bad request", body = ErrorDto),
+        (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 424, description = "Failed dependency", body = ErrorDto),
+        (status = 500, description = "Internal server error", body = ErrorDto),
+    ),
+    security(
+        ("oauth2" = [])
+    )
+)]
+#[post("/user/sign", wrap = "keycloak_middleware::Keycloak")]
+async fn user_sign(
+    data: Data<AppState>,
+    user: Json<NewSigningRequestDto>,
+    claims: KeycloakUserClaims<NoRoles>,
+) -> WebResult<Json<SigningRequestDto>> {
+    let client = data
+        .client_service
+        .find_user_client(&claims.user.id)
+        .await?
+        .ok_or(HttpResponseError::bad_request(Some(
+            "No client found for user",
+        )))?;
+    sign_certificate(user, data, client.id).await
 }
 
 /// Get the root CA certificate
@@ -267,6 +308,7 @@ register_module!(
     get_intermediate,
     generate_intermediate,
     sign,
+    user_sign,
     generate_root_certificate,
     get_root_certificate
 );

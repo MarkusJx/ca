@@ -1,5 +1,5 @@
 use crate::config::app_state::AppState;
-use crate::entity::user;
+use crate::entity::{client, user};
 use crate::error::http_response_error::HttpResponseError;
 use crate::middleware::extractors::KeycloakUserClaims;
 use crate::middleware::keycloak_middleware;
@@ -66,6 +66,17 @@ async fn create(
         .find_by_name(user.name.as_str(), true)
         .await?
         .map(|_| Err(HttpResponseError::bad_request(Some("User already exists"))))
+        .unwrap_or(Ok(()))?;
+
+    let client_name = user.name.clone() + "-client";
+    data.client_service
+        .find_by_name(&client_name)
+        .await?
+        .map(|_| {
+            Err(HttpResponseError::bad_request(Some(
+                "Client already exists",
+            )))
+        })
         .unwrap_or(Ok(()))?;
 
     let kc_users = data
@@ -140,6 +151,17 @@ async fn create(
         .insert(user::ActiveModel {
             name: ActiveValue::set(user.name.clone()),
             external_id: ActiveValue::set(Some(kc_user_id)),
+            ..Default::default()
+        })
+        .await?;
+
+    data.client_service
+        .insert(client::ActiveModel {
+            name: ActiveValue::set(client_name.clone()),
+            original_name: ActiveValue::set(client_name),
+            user_id: ActiveValue::set(model.id),
+            valid_until: ActiveValue::set(None),
+            is_user_client: ActiveValue::set(true),
             ..Default::default()
         })
         .await?;
@@ -330,6 +352,7 @@ async fn delete(
     }
 
     if query.delete_in_database.unwrap_or(true) {
+        data.user_service.disable(user.clone().into()).await?;
         data.user_service.delete(user).await?;
     } else if user.active {
         data.user_service.disable(user.into()).await?;

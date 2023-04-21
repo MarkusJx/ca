@@ -23,8 +23,8 @@ pub struct ClientDto {
     /// Whether the client is active
     pub active: bool,
     /// The time the client is valid until
-    #[serde(rename = "validUntil")]
-    pub valid_until: String,
+    #[serde(rename = "validUntil", skip_serializing_if = "Option::is_none")]
+    pub valid_until: Option<String>,
     /// The time the client was created
     #[serde(rename = "createdAt")]
     pub created_at: String,
@@ -43,7 +43,7 @@ impl ClientDto {
             token: None,
             token_hash: token.token_hash,
             active: model.active,
-            valid_until: model.valid_until.to_rfc3339(),
+            valid_until: model.valid_until.map(|v| v.to_rfc3339()),
             created_at: model.created_at.to_rfc3339(),
             updated_at: model.updated_at.to_rfc3339(),
         }
@@ -62,7 +62,7 @@ impl ClientDto {
             token: Some(jwt_token),
             token_hash: token.token_hash,
             active: model.active,
-            valid_until: model.valid_until.to_rfc3339(),
+            valid_until: model.valid_until.map(|v| v.to_rfc3339()),
             created_at: model.created_at.to_rfc3339(),
             updated_at: model.updated_at.to_rfc3339(),
         }

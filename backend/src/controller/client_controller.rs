@@ -137,7 +137,7 @@ async fn create(
             id: ActiveValue::Set(data.client_service.generate_id().await?),
             name: ActiveValue::Set(client_name.clone()),
             user_id: ActiveValue::Set(claims.user.id),
-            valid_until: ActiveValue::Set(expiry_date),
+            valid_until: ActiveValue::Set(Some(expiry_date)),
             ..Default::default()
         })
         .await?;
@@ -194,7 +194,7 @@ async fn regenerate_token(
 
     let client_entity = {
         let mut entity = client_entity.into_active_model();
-        entity.valid_until = ActiveValue::Set(expiry_date);
+        entity.valid_until = ActiveValue::Set(Some(expiry_date));
         data.client_service.update(entity).await?
     };
 
@@ -246,11 +246,14 @@ async fn by_id(
         )));
     }
 
-    let token_entity = data
-        .token_service
-        .find_by_client_id(&client_id, include_inactive)
-        .await?
-        .ok_or(HttpResponseError::not_found(Some("Token not found")))?;
+    let token_entity = if client.is_user_client {
+        claims.get_user_token()?
+    } else {
+        data.token_service
+            .find_by_client_id(&client_id, include_inactive)
+            .await?
+            .ok_or(HttpResponseError::not_found(Some("Token not found")))?
+    };
 
     Ok(Json(ClientDto::from_model(client, token_entity)))
 }
@@ -286,11 +289,14 @@ async fn list(
 
     let mut res = Vec::with_capacity(clients.len());
     for client in clients {
-        let token_entity = data
-            .token_service
-            .find_by_client_id(&client.id, include_inactive)
-            .await?
-            .ok_or(HttpResponseError::not_found(Some("Token not found")))?;
+        let token_entity = if client.is_user_client {
+            claims.get_user_token()?
+        } else {
+            data.token_service
+                .find_by_client_id(&client.id, include_inactive)
+                .await?
+                .ok_or(HttpResponseError::not_found(Some("Token not found")))?
+        };
 
         res.push(ClientDto::from_model(client, token_entity))
     }
@@ -330,7 +336,11 @@ async fn delete(
         .find_by_id_string_unwrap(path.as_ref(), true)
         .await?;
 
-    if client.user_id != claims.user.id {
+    if client.is_user_client {
+        return Err(HttpResponseError::bad_request(Some(
+            "User client cannot be deleted",
+        )));
+    } else if client.user_id != claims.user.id {
         return Err(HttpResponseError::bad_request(Some("Client not found")));
     }
 

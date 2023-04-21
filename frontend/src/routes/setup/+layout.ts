@@ -9,8 +9,8 @@ export const load = (async ({ parent }) => {
 	if (browser) {
 		const parentData = (await parent()) as { health: HealthInfoDto };
 		if (parentData.health.isInitialized) {
-			//location.href = '/';
-			//return {};
+			location.href = '/';
+			return {};
 		}
 
 		keycloakPromise = KeycloakAdapter.init(true);
