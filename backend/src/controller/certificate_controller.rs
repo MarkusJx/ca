@@ -52,6 +52,7 @@ async fn get_intermediate(data: Data<AppState>) -> WebResult<Option<Json<CACerti
         (status = 200, description = "Ok", body = CACertificateDto),
         (status = 400, description = "Bad request", body = ErrorDto),
         (status = 401, description = "Unauthorized", body = ErrorDto),
+        (status = 404, description = "Root certificate not found", body = ErrorDto),
         (status = 500, description = "Internal server error", body = ErrorDto),
     ),
     security(
@@ -64,11 +65,15 @@ async fn generate_intermediate(
     body: Json<GenerateIntermediateDto>,
     _claims: KeycloakUserClaims<AdminRole>,
 ) -> WebResult<Json<CACertificateDto>> {
-    let root = data.root_certificate_service.find_active().await?.ok_or(
-        HttpResponseError::bad_request("Root certificate does not exist"),
-    )?;
+    let root =
+        data.root_certificate_service
+            .find_active()
+            .await?
+            .ok_or(HttpResponseError::not_found(
+                "Root certificate does not exist",
+            ))?;
     let root = CACertificate::root_from_pem(&root.public, body.root_certificate.as_bytes())
-        .map_internal_error("Failed to parse root certificate")?;
+        .map_bad_request("Failed to parse root certificate")?;
 
     let intermediate = CACertificate::generate_intermediate(&data.config, &root)
         .map_internal_error("Failed to generate intermediate certificate")?;
@@ -104,7 +109,7 @@ async fn sign_certificate(
     client_id: Uuid,
 ) -> WebResult<Json<SigningRequestDto>> {
     let req = X509Req::from_pem(request.request.as_bytes())
-        .map_internal_error("Failed to parse csr string")?;
+        .map_bad_request("Failed to parse csr string")?;
     let ca_cert: CACertificate = data
         .certificate_service
         .find_active()

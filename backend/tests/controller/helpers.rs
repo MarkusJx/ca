@@ -1,5 +1,7 @@
+use ca_backend::entity::user;
 use ca_backend::service::keycloak_service::{KeycloakService, MockKeycloakService};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::{DatabaseBackend, MockDatabase};
 use serde::{Deserialize, Serialize};
 
@@ -87,13 +89,39 @@ pub fn encode_keycloak_token(
     )
 }
 
+pub fn create_user(id: &uuid::Uuid, name: &str) -> user::Model {
+    let now: DateTimeWithTimeZone = chrono::Utc::now().into();
+    user::Model {
+        name: name.into(),
+        active: true,
+        id: id.clone(),
+        original_name: name.into(),
+        created_at: now.clone(),
+        updated_at: now.clone(),
+        external_id: Some(id.to_string()),
+    }
+}
+
+#[macro_export]
+macro_rules! module {
+    ($module: expr) => {
+        actix_web::web::scope("/api/v1").module($module)
+    };
+}
+
+#[macro_export]
+macro_rules! scope {
+    ($method: expr) => {
+        actix_web::web::scope("/api/v1").service($method)
+    };
+}
+
 #[macro_export]
 macro_rules! init_test {
     ($app: ident, $module: expr) => {
         init_test!($app, $module, TestInitData::default());
     };
     ($app: ident, $module: expr, $data: expr) => {
-        use ca_backend::util::traits::register_module::RegisterModule;
         use crate::controller::helpers::TestInitData;
         shared::util::logger::init_logger(log::LevelFilter::Debug).unwrap();
 
@@ -114,13 +142,21 @@ bZIbbH71RK3LL4WNu2JJOXYaCNbTOMWGmrUfLjdO3Qrid8Lu3Jgj94ZpTA==
             token_service: ca_backend::service::token_service::TokenService::new(db.clone()),
             certificate_service: ca_backend::service::certificate_service::CertificateService::new(db.clone()),
             root_certificate_service: ca_backend::service::root_certificate_service::RootCertificateService::new(db.clone()),
-            config: ca_backend::config::config::Config::init().unwrap(),
+            config: ca_backend::config::config::Config {
+                jwt_secret: "secret".into(),
+                ..ca_backend::config::config::Config::init().unwrap()
+            },
             keycloak_service: std::sync::Arc::new(data.kc),
         };
+
+        #[allow(unused_imports)]
+        use ca_backend::util::traits::register_module::RegisterModule;
+
+        let module = $module;
         let $app = actix_web::test::init_service(
             actix_web::App::new()
                 .app_data(actix_web::web::Data::new(state))
-                .service(actix_web::web::scope("/api/v1").module($module))
+                .service(module)
         ).await;
     };
 }

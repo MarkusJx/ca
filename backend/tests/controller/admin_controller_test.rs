@@ -1,12 +1,13 @@
 use crate::controller::helpers::encode_keycloak_token;
 use crate::init_test;
+use crate::module;
 use actix_web::test::{call_service, read_body_json, TestRequest};
 use ca_backend::controller::admin_controller;
 use ca_backend::entity::user;
+use ca_backend::model::error_dto::ErrorDto;
 use ca_backend::service::keycloak_service::MockKeycloakService;
 use sea_orm::{DatabaseBackend, MockDatabase};
 use uuid::Uuid;
-use ca_backend::model::error_dto::ErrorDto;
 
 #[actix_web::test]
 async fn test_list_roles() {
@@ -28,7 +29,7 @@ async fn test_list_roles() {
 
     init_test!(
         app,
-        admin_controller::module,
+        module!(admin_controller::module),
         TestInitData {
             kc: Box::new(kc),
             db
@@ -49,10 +50,7 @@ async fn test_list_roles() {
 
 #[actix_web::test]
 async fn test_list_roles_insufficient_privileges() {
-    init_test!(
-        app,
-        admin_controller::module
-    );
+    init_test!(app, module!(admin_controller::module));
 
     let token = encode_keycloak_token(&Uuid::new_v4(), "test", "test", &["user"]);
     let req = TestRequest::get()
@@ -69,14 +67,9 @@ async fn test_list_roles_insufficient_privileges() {
 
 #[actix_web::test]
 async fn test_list_roles_no_token() {
-    init_test!(
-        app,
-        admin_controller::module
-    );
+    init_test!(app, module!(admin_controller::module));
 
-    let req = TestRequest::get()
-        .uri("/api/v1/admin/roles")
-        .to_request();
+    let req = TestRequest::get().uri("/api/v1/admin/roles").to_request();
 
     let res = call_service(&app, req).await;
     assert_eq!(401, res.status().as_u16());
@@ -84,10 +77,7 @@ async fn test_list_roles_no_token() {
 
 #[actix_web::test]
 async fn test_list_roles_invalid_token() {
-    init_test!(
-        app,
-        admin_controller::module
-    );
+    init_test!(app, module!(admin_controller::module));
 
     let req = TestRequest::get()
         .uri("/api/v1/admin/roles")

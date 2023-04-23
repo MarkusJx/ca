@@ -1,4 +1,4 @@
-use crate::init_test;
+use crate::{init_test, module};
 use actix_web::test::{call_service, read_body_json, TestRequest};
 use ca_backend::controller::common;
 use ca_backend::entity::root_certificate;
@@ -18,7 +18,7 @@ async fn test_health_check() {
 
     init_test!(
         app,
-        common::module,
+        module!(common::module),
         TestInitData {
             kc: Box::new(kc),
             db
