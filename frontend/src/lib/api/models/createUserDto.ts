@@ -7,11 +7,11 @@
  */
 
 export interface CreateUserDto {
-	email: string | null;
-	firstName: string | null;
-	isPasswordTemporary: boolean | null;
-	lastName: string | null;
+	email?: string | null;
+	firstName?: string | null;
+	isPasswordTemporary?: boolean | null;
+	lastName?: string | null;
 	name: string;
 	password: string;
-	roles: string[] | null;
+	roles?: string[] | null;
 }

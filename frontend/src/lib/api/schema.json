@@ -247,6 +247,63 @@
 				"security": [{ "jwt": [] }]
 			}
 		},
+		"/api/v1/certificate/user-sign": {
+			"post": {
+				"tags": ["Certificates"],
+				"operationId": "userSignCertificate",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/NewSigningRequestDto" }
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/SigningRequestDto" }
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"424": {
+						"description": "Failed dependency",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ErrorDto" }
+							}
+						}
+					}
+				},
+				"security": [{ "oauth2": [] }]
+			}
+		},
 		"/api/v1/client": {
 			"post": {
 				"tags": ["Clients"],
@@ -314,7 +371,7 @@
 						"in": "query",
 						"description": "Whether to include inactive clients in the result.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -448,7 +505,7 @@
 						"in": "query",
 						"description": "Whether to include inactive clients in the result.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -511,7 +568,7 @@
 						"in": "query",
 						"description": "Whether to delete the client rather than just deactivating it.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -755,7 +812,7 @@
 						"in": "query",
 						"description": "Whether to include inactive users in the result.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -821,7 +878,7 @@
 						"in": "query",
 						"description": "Whether to include inactive users in the result.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -881,7 +938,7 @@
 						"in": "query",
 						"description": "Whether to include inactive users in the result.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -952,7 +1009,7 @@
 						"in": "query",
 						"description": "Whether to delete the user rather than just deactivating it.\nDefaults to false.",
 						"required": false,
-						"schema": { "type": "boolean" }
+						"schema": { "type": "boolean", "nullable": true }
 					}
 				],
 				"responses": {
@@ -1040,7 +1097,6 @@
 					"userId",
 					"tokenHash",
 					"active",
-					"validUntil",
 					"createdAt",
 					"updatedAt"
 				],
@@ -1078,13 +1134,14 @@
 					},
 					"validUntil": {
 						"type": "string",
-						"description": "The time the client is valid until"
+						"description": "The time the client is valid until",
+						"nullable": true
 					}
 				}
 			},
 			"CreateClientDto": {
 				"type": "object",
-				"required": ["name", "validUntil"],
+				"required": ["validUntil"],
 				"properties": {
 					"name": {
 						"type": "string",
@@ -1096,15 +1153,7 @@
 			},
 			"CreateUserDto": {
 				"type": "object",
-				"required": [
-					"name",
-					"email",
-					"firstName",
-					"lastName",
-					"password",
-					"isPasswordTemporary",
-					"roles"
-				],
+				"required": ["name", "password"],
 				"properties": {
 					"email": { "type": "string", "nullable": true },
 					"firstName": { "type": "string", "nullable": true },
@@ -1222,9 +1271,6 @@
 					"name",
 					"displayName",
 					"active",
-					"email",
-					"firstName",
-					"lastName",
 					"roles",
 					"createdAt",
 					"updatedAt"

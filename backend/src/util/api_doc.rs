@@ -11,6 +11,7 @@ use utoipa::{Modify, OpenApi};
         crate::controller::certificate_controller::sign,
         crate::controller::certificate_controller::generate_root_certificate,
         crate::controller::certificate_controller::get_root_certificate,
+        crate::controller::certificate_controller::user_sign,
         crate::controller::common::health_check,
         crate::controller::user_controller::create,
         crate::controller::user_controller::list,

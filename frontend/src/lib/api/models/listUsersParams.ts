@@ -11,5 +11,5 @@ export type ListUsersParams = {
  * Whether to include inactive users in the result.
 Defaults to false.
  */
-	includeInactive?: boolean;
+	includeInactive?: boolean | null;
 };

@@ -11,5 +11,5 @@ export type DeleteClientParams = {
  * Whether to delete the client rather than just deactivating it.
 Defaults to false.
  */
-	deleteInDatabase?: boolean;
+	deleteInDatabase?: boolean | null;
 };

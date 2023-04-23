@@ -3,12 +3,13 @@ use crate::error::http_response_error::MapHttpResponseError;
 use crate::repository::token_repository::TokenRepository;
 use crate::util::types::WebResult;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use std::sync::Arc;
 use uuid::Uuid;
 
-pub struct TokenService(DatabaseConnection);
+pub struct TokenService(Arc<DatabaseConnection>);
 
 impl TokenService {
-    pub fn new(db: DatabaseConnection) -> Self {
+    pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self(db)
     }
 
@@ -26,9 +27,9 @@ impl TokenService {
         id: &Uuid,
         include_inactive: bool,
     ) -> WebResult<Option<token::Model>> {
-        TokenRepository::find_by_id(&self.0, id, include_inactive)
+        TokenRepository::find_by_id(self.0.as_ref(), id, include_inactive)
             .await
-            .map_internal_error(Some("Failed to find token by id"))
+            .map_internal_error("Failed to find token by id")
     }
 
     pub async fn find_by_client_id(
@@ -37,9 +38,9 @@ impl TokenService {
         include_inactive: bool,
     ) -> WebResult<Option<token::Model>> {
         Ok(
-            TokenRepository::find_all_by_client(&self.0, client_id, include_inactive)
+            TokenRepository::find_all_by_client(self.0.as_ref(), client_id, include_inactive)
                 .await
-                .map_internal_error(Some("Failed to find token by client id"))?
+                .map_internal_error("Failed to find token by client id")?
                 .into_iter()
                 .next(),
         )
@@ -47,17 +48,17 @@ impl TokenService {
 
     pub async fn insert(&self, model: token::ActiveModel) -> WebResult<token::Model> {
         model
-            .insert(&self.0)
+            .insert(self.0.as_ref())
             .await
-            .map_internal_error(Some("Failed to create token"))
+            .map_internal_error("Failed to create token")
     }
 
     pub async fn deactivate_all_by_client_id(
         &self,
         client_id: &Uuid,
     ) -> WebResult<Vec<token::Model>> {
-        TokenRepository::deactivate_all_by_client(&self.0, client_id)
+        TokenRepository::deactivate_all_by_client(self.0.as_ref(), client_id)
             .await
-            .map_internal_error(Some("Failed to deactivate tokens by client id"))
+            .map_internal_error("Failed to deactivate tokens by client id")
     }
 }

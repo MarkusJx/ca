@@ -38,24 +38,24 @@ async fn by_client_id(
     id: web::Path<String>,
     claims: KeycloakUserClaims<NoRoles>,
 ) -> WebResult<Json<Vec<SigningRequestDto>>> {
-    let client_id = Uuid::from_str(&id).map_bad_request(Some("Invalid client id supplied"))?;
+    let client_id = Uuid::from_str(&id).map_bad_request("Invalid client id supplied")?;
     let client = data
         .client_service
         .find_by_id(&client_id, false)
         .await?
-        .ok_or(HttpResponseError::not_found(Some("Client not found")))?;
+        .ok_or(HttpResponseError::not_found("Client not found"))?;
 
     if client.user_id != claims.user.id {
-        return Err(HttpResponseError::unauthorized(Some(
+        return Err(HttpResponseError::unauthorized(
             "User is not allowed to access this resource",
-        )));
+        ));
     }
 
     Ok(Json(
         data.signing_request_service
             .find_all_by_client_id(&client_id)
             .await
-            .map_internal_error(Some("Failed to get signing requests"))?
+            .map_internal_error("Failed to get signing requests")?
             .into_iter()
             .map(|r| SigningRequestDto::from_model(r))
             .collect(),
@@ -86,7 +86,7 @@ async fn get_all(
         data.signing_request_service
             .find_all_by_user_id(&claims.user.id)
             .await
-            .map_internal_error(Some("Failed to get signing requests"))?
+            .map_internal_error("Failed to get signing requests")?
             .into_iter()
             .map(|r| SigningRequestDto::from_model(r))
             .collect(),

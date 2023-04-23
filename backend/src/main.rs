@@ -13,10 +13,11 @@ use crate::controller::{
     signing_request_controller, swagger, user_controller,
 };
 use crate::middleware::keycloak_middleware;
+use crate::middleware::keycloak_middleware::KeyType;
 use crate::repository::database;
 use crate::service::certificate_service::CertificateService;
 use crate::service::client_service::ClientService;
-use crate::service::keycloak_service::KeycloakService;
+use crate::service::keycloak_service::KeycloakServiceImpl;
 use crate::service::root_certificate_service::RootCertificateService;
 use crate::service::signing_request_service::SigningRequestService;
 use crate::service::token_service::TokenService;
@@ -32,6 +33,7 @@ use log::info;
 use shared::util::logger::init_logger;
 use std::io;
 use std::str::FromStr;
+use std::sync::Arc;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -53,12 +55,12 @@ async fn main() -> io::Result<()> {
     .map_to_io_error()?;
 
     info!("Connecting to database");
-    let db = database::connect(&config).await.map_to_io_error()?;
+    let db = Arc::new(database::connect(&config).await.map_to_io_error()?);
     info!("Creating tables");
     database::fill(&db).await.map_to_io_error()?;
 
     info!("Connecting to keycloak");
-    let keycloak_service = KeycloakService::new(&config).await.map_to_io_error()?;
+    let keycloak_service = KeycloakServiceImpl::new(&config).await.map_to_io_error()?;
     let user_service = UserService::new(db.clone());
 
     if config.keycloak_init_realm {
@@ -75,6 +77,7 @@ async fn main() -> io::Result<()> {
             .get_realm_public_key()
             .await
             .map_to_io_error()?,
+        KeyType::RSA,
     )
     .map_to_io_error()?;
 

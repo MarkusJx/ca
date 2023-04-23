@@ -57,26 +57,22 @@ async fn create(
     _claims: KeycloakUserClaims<AdminRole>,
 ) -> WebResult<Json<UserDto>> {
     if user.name.len() < 3 || user.password.len() < 3 {
-        return Err(HttpResponseError::bad_request(Some(
+        return Err(HttpResponseError::bad_request(
             "The username and password must be at least 3 characters long",
-        )));
+        ));
     }
 
     data.user_service
         .find_by_name(user.name.as_str(), true)
         .await?
-        .map(|_| Err(HttpResponseError::bad_request(Some("User already exists"))))
+        .map(|_| Err(HttpResponseError::bad_request("User already exists")))
         .unwrap_or(Ok(()))?;
 
     let client_name = user.name.clone() + "-client";
     data.client_service
         .find_by_name(&client_name)
         .await?
-        .map(|_| {
-            Err(HttpResponseError::bad_request(Some(
-                "Client already exists",
-            )))
-        })
+        .map(|_| Err(HttpResponseError::bad_request("Client already exists")))
         .unwrap_or(Ok(()))?;
 
     let kc_users = data
@@ -87,9 +83,9 @@ async fn create(
     let kc_user = kc_users.first();
     let mut kc_user = if let Some(kc_user) = kc_user {
         if !kc_user.username.is_some() || kc_user.username.as_ref().unwrap() != user.name.as_str() {
-            return Err(HttpResponseError::bad_request(Some(
+            return Err(HttpResponseError::bad_request(
                 "The username and name of the user do not match",
-            )));
+            ));
         }
 
         kc_user.clone()
@@ -122,18 +118,13 @@ async fn create(
             .first()
             .map(|kc_user| kc_user.clone())
             .ok_or_else(|| {
-                HttpResponseError::failed_dependency(Some(
-                    "Failed to get the created user from keycloak",
-                ))
+                HttpResponseError::failed_dependency("Failed to get the created user from keycloak")
             })?
     };
 
-    let kc_user_id = kc_user
-        .id
-        .clone()
-        .ok_or(HttpResponseError::internal_error(Some(
-            "Failed to get the external id of the user",
-        )))?;
+    let kc_user_id = kc_user.id.clone().ok_or(HttpResponseError::internal_error(
+        "Failed to get the external id of the user",
+    ))?;
 
     if let Some(roles) = user.roles.as_ref() {
         if !roles.is_empty() {
@@ -295,7 +286,7 @@ async fn by_name(
         .user_service
         .find_by_name(&name.into_inner(), query.include_inactive.unwrap_or(false))
         .await?
-        .ok_or(HttpResponseError::not_found(Some("User not found")))?;
+        .ok_or(HttpResponseError::not_found("User not found"))?;
 
     let kc_user = if let Some(id) = model.external_id.as_ref() {
         Some(data.keycloak_service.get_user_by_id(id).await?)
@@ -340,9 +331,7 @@ async fn delete(
         .await?;
 
     if claims.user.id == user.id {
-        return Err(HttpResponseError::bad_request(Some(
-            "Cannot delete yourself",
-        )));
+        return Err(HttpResponseError::bad_request("Cannot delete yourself"));
     }
 
     if user.active {
@@ -357,9 +346,7 @@ async fn delete(
     } else if user.active {
         data.user_service.disable(user.into()).await?;
     } else {
-        return Err(HttpResponseError::bad_request(Some(
-            "User is already inactive",
-        )));
+        return Err(HttpResponseError::bad_request("User is already inactive"));
     }
 
     Ok(HttpResponse::NoContent().finish())

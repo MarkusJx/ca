@@ -11,12 +11,21 @@ use std::sync::Mutex;
 
 static mut KEYCLOAK_AUTH: Mutex<Option<KeycloakAuth<AlwaysReturnPolicy>>> = Mutex::new(None);
 
-pub fn set_keycloak_public_key(cert: String) -> BasicResult<()> {
+#[allow(dead_code)]
+pub enum KeyType {
+    RSA,
+    ECDSA,
+}
+
+pub fn set_keycloak_public_key(cert: String, key_type: KeyType) -> BasicResult<()> {
+    let key = match key_type {
+        KeyType::RSA => DecodingKey::from_rsa_pem(cert.as_bytes())?,
+        KeyType::ECDSA => DecodingKey::from_ec_pem(cert.as_bytes())?,
+    };
+
     unsafe { KEYCLOAK_AUTH.lock() }
         .unwrap()
-        .replace(KeycloakAuth::default_with_pk(DecodingKey::from_rsa_pem(
-            cert.as_bytes(),
-        )?));
+        .replace(KeycloakAuth::default_with_pk(key));
     Ok(())
 }
 

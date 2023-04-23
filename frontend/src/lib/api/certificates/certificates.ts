@@ -302,3 +302,54 @@ export const createSignCertificate = <
 		TContext
 	>(mutationFn, mutationOptions);
 };
+export const userSignCertificate = (
+	newSigningRequestDto: NewSigningRequestDto,
+	options?: SecondParameter<typeof customInstance>
+) => {
+	return customInstance<SigningRequestDto>(
+		{
+			url: `/api/v1/certificate/user-sign`,
+			method: 'post',
+			headers: { 'Content-Type': 'application/json' },
+			data: newSigningRequestDto,
+		},
+		options
+	);
+};
+
+export type UserSignCertificateMutationResult = NonNullable<
+	Awaited<ReturnType<typeof userSignCertificate>>
+>;
+export type UserSignCertificateMutationBody = NewSigningRequestDto;
+export type UserSignCertificateMutationError = ErrorType<ErrorDto>;
+
+export const createUserSignCertificate = <
+	TError = ErrorType<ErrorDto>,
+	TContext = unknown
+>(options?: {
+	mutation?: CreateMutationOptions<
+		Awaited<ReturnType<typeof userSignCertificate>>,
+		TError,
+		{ data: NewSigningRequestDto },
+		TContext
+	>;
+	request?: SecondParameter<typeof customInstance>;
+}) => {
+	const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof userSignCertificate>>,
+		{ data: NewSigningRequestDto }
+	> = (props) => {
+		const { data } = props ?? {};
+
+		return userSignCertificate(data, requestOptions);
+	};
+
+	return createMutation<
+		Awaited<ReturnType<typeof userSignCertificate>>,
+		TError,
+		{ data: NewSigningRequestDto },
+		TContext
+	>(mutationFn, mutationOptions);
+};

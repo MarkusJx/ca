@@ -3,24 +3,25 @@ use crate::error::http_response_error::MapHttpResponseError;
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::util::types::WebResult;
 use sea_orm::DatabaseConnection;
+use std::sync::Arc;
 
-pub struct CertificateService(DatabaseConnection);
+pub struct CertificateService(Arc<DatabaseConnection>);
 
 impl CertificateService {
-    pub fn new(db: DatabaseConnection) -> Self {
+    pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self(db)
     }
 
     pub async fn insert(&self, model: certificate::ActiveModel) -> WebResult<certificate::Model> {
-        CertificateRepository::insert(&self.0, model)
+        CertificateRepository::insert(self.0.as_ref(), model)
             .await
-            .map_internal_error(Some("Failed to create certificate"))
+            .map_internal_error("Failed to create certificate")
     }
 
     pub async fn find_active(&self) -> WebResult<Option<certificate::Model>> {
-        CertificateRepository::find_active(&self.0)
+        CertificateRepository::find_active(self.0.as_ref())
             .await
-            .map_internal_error(Some("Failed to find active certificate"))
+            .map_internal_error("Failed to find active certificate")
     }
 
     /*pub async fn get_certificate(&self, config: &Config) -> WebResult<certificate::Model> {

@@ -10,10 +10,10 @@ export interface UserDto {
 	active: boolean;
 	createdAt: string;
 	displayName: string;
-	email: string | null;
-	firstName: string | null;
+	email?: string | null;
+	firstName?: string | null;
 	id: string;
-	lastName: string | null;
+	lastName?: string | null;
 	name: string;
 	roles: string[];
 	updatedAt: string;

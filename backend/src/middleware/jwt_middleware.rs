@@ -40,23 +40,19 @@ impl JwtMiddleware {
             .map(|c| Ok(c.value().to_string()))
             .or_else(|| {
                 req.headers().get(http::header::AUTHORIZATION).map(|h| {
-                    let s = h.to_str().map_bad_request(Some("Invalid token provided"))?;
+                    let s = h.to_str().map_bad_request("Invalid token provided")?;
                     if !s.starts_with("Bearer ") {
-                        return Err(HttpResponseError::bad_request(Some(
-                            "Invalid token provided",
-                        )));
+                        return Err(HttpResponseError::bad_request("Invalid token provided"));
                     }
 
                     Ok(s.get(7..)
-                        .ok_or(HttpResponseError::bad_request(Some(
-                            "Invalid token provided",
-                        )))?
+                        .ok_or(HttpResponseError::bad_request("Invalid token provided"))?
                         .to_string())
                 })
             });
 
         if token.is_none() {
-            return Err(HttpResponseError::unauthorized(Some("No token provided")).into());
+            return Err(HttpResponseError::unauthorized("No token provided").into());
         }
 
         let claims = match decode::<TokenClaims>(
@@ -66,7 +62,7 @@ impl JwtMiddleware {
         ) {
             Ok(c) => c.claims,
             Err(e) => {
-                return Err(e).map_unauthorized(Some("Invalid token"))?;
+                return Err(e).map_unauthorized("Invalid token")?;
             }
         };
 

@@ -43,11 +43,11 @@ async fn create_token(
     data: &Data<AppState>,
 ) -> WebResult<(DateTime<FixedOffset>, Uuid, String, String)> {
     let expiry_date = DateTimeWithTimeZone::parse_from_rfc3339(&client.valid_until)
-        .map_bad_request(Some("Invalid date supplied"))?;
+        .map_bad_request("Invalid date supplied")?;
     if expiry_date < chrono::Utc::now() {
-        return Err(HttpResponseError::bad_request(Some(
+        return Err(HttpResponseError::bad_request(
             "Expiry date must be in the future",
-        )));
+        ));
     }
 
     let token_id = data.token_service.generate_id().await?;
@@ -60,7 +60,7 @@ async fn create_token(
         },
         &EncodingKey::from_secret(data.config.jwt_secret.as_bytes()),
     )
-    .map_internal_error(Some("Failed to encode jwt"))?;
+    .map_internal_error("Failed to encode jwt")?;
 
     let token_hash = {
         let mut hash = Sha256::new();
@@ -112,20 +112,17 @@ async fn create(
 ) -> WebResult<Json<ClientDto>> {
     debug!("Creating client for user {}", claims.user.id);
 
-    let client_name = client
-        .name
-        .clone()
-        .ok_or(HttpResponseError::bad_request(Some(
-            "Client name must be supplied",
-        )))?;
+    let client_name = client.name.clone().ok_or(HttpResponseError::bad_request(
+        "Client name must be supplied",
+    ))?;
 
     data.client_service
         .find_by_name(&client_name)
         .await?
         .map(|_| {
-            Err(HttpResponseError::bad_request(Some(
+            Err(HttpResponseError::bad_request(
                 "A client with that name already exists",
-            )))
+            ))
         })
         .unwrap_or(Ok(()))?;
 
@@ -183,7 +180,7 @@ async fn regenerate_token(
         .await?;
 
     if client_entity.user_id != claims.user.id {
-        return Err(HttpResponseError::bad_request(Some("Client not found")));
+        return Err(HttpResponseError::bad_request("Client not found"));
     }
 
     let (expiry_date, token_id, token, token_hash) = create_token(&client, &data).await?;
@@ -233,17 +230,17 @@ async fn by_id(
     claims: KeycloakUserClaims<NoRoles>,
 ) -> WebResult<Json<ClientDto>> {
     let include_inactive = query.include_inactive.unwrap_or(false);
-    let client_id = Uuid::parse_str(&path).map_bad_request(Some("Invalid client id supplied"))?;
+    let client_id = Uuid::parse_str(&path).map_bad_request("Invalid client id supplied")?;
     let client = data
         .client_service
         .find_by_id(&client_id, include_inactive)
         .await?
-        .ok_or(HttpResponseError::not_found(Some("Client not found")))?;
+        .ok_or(HttpResponseError::not_found("Client not found"))?;
 
     if client.user_id != claims.user.id {
-        return Err(HttpResponseError::unauthorized(Some(
+        return Err(HttpResponseError::unauthorized(
             "You are not authorized to access this client",
-        )));
+        ));
     }
 
     let token_entity = if client.is_user_client {
@@ -252,7 +249,7 @@ async fn by_id(
         data.token_service
             .find_by_client_id(&client_id, include_inactive)
             .await?
-            .ok_or(HttpResponseError::not_found(Some("Token not found")))?
+            .ok_or(HttpResponseError::not_found("Token not found"))?
     };
 
     Ok(Json(ClientDto::from_model(client, token_entity)))
@@ -295,7 +292,7 @@ async fn list(
             data.token_service
                 .find_by_client_id(&client.id, include_inactive)
                 .await?
-                .ok_or(HttpResponseError::not_found(Some("Token not found")))?
+                .ok_or(HttpResponseError::not_found("Token not found"))?
         };
 
         res.push(ClientDto::from_model(client, token_entity))
@@ -337,11 +334,11 @@ async fn delete(
         .await?;
 
     if client.is_user_client {
-        return Err(HttpResponseError::bad_request(Some(
+        return Err(HttpResponseError::bad_request(
             "User client cannot be deleted",
-        )));
+        ));
     } else if client.user_id != claims.user.id {
-        return Err(HttpResponseError::bad_request(Some("Client not found")));
+        return Err(HttpResponseError::bad_request("Client not found"));
     }
 
     if query.delete_in_database.unwrap_or(false) {
@@ -351,17 +348,13 @@ async fn delete(
             .rows_affected
             .ge(&1)
             .then(|| ())
-            .ok_or(HttpResponseError::bad_request(Some(
-                "Failed to delete client",
-            )))?;
+            .ok_or(HttpResponseError::bad_request("Failed to delete client"))?;
     } else if client.active {
         data.client_service
             .disable(client.into_active_model())
             .await?;
     } else {
-        return Err(HttpResponseError::bad_request(Some(
-            "Client is already inactive",
-        )));
+        return Err(HttpResponseError::bad_request("Client is already inactive"));
     }
 
     Ok(HttpResponse::NoContent().finish())

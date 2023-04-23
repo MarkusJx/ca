@@ -23,7 +23,8 @@ sea-orm = { version = "0.11.0", features = [
     "debug-print",
     "postgres-array",
     "with-chrono",
-    "uuid"
+    "uuid",
+    "mock"
 ] }
 chrono = "0.4.23"
 jsonwebtoken = "8.2.0"
@@ -36,3 +37,7 @@ reqwest = "0.11.14"
 futures = "0.3.27"
 shared = { path = "../shared" }
 async-trait = "0.1.66"
+mockall = "0.11.4"
+
+[dev-dependencies]
+jsonwebtoken = "8.3.0"

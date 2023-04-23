@@ -26,5 +26,5 @@ export interface ClientDto {
 	/** The id of the user that owns the client */
 	userId: string;
 	/** The time the client is valid until */
-	validUntil: string;
+	validUntil?: string | null;
 }

@@ -33,7 +33,7 @@ impl<R: KeycloakRoles> KeycloakUserClaims<R> {
             token_hash: ActiveValue::Set(hash),
         }
         .try_into_model()
-        .map_internal_error(Some("Failed to create token model"))
+        .map_internal_error("Failed to create token model")
     }
 }
 
@@ -47,25 +47,25 @@ where
     fn from_request(req: &actix_web::HttpRequest, _: &mut Payload) -> Self::Future {
         let req = req.clone();
         Box::pin(async move {
-            let data: &web::Data<AppState> =
-                req.app_data()
-                    .ok_or(HttpResponseError::internal_error(Some(
-                        "App data not found",
-                    )))?;
+            let data: &web::Data<AppState> = req
+                .app_data()
+                .ok_or(HttpResponseError::internal_error("App data not found"))?;
             let claims: StandardKeycloakClaims =
-                StandardKeycloakClaims::from_request(&req, &mut Payload::None).await?;
+                StandardKeycloakClaims::from_request(&req, &mut Payload::None)
+                    .await
+                    .map_unauthorized("Failed to extract keycloak claims")?;
             let user_id = claims.sub.to_string();
 
             if !R::roles_match(
                 &claims
                     .realm_access
                     .as_ref()
-                    .ok_or(HttpResponseError::internal_error(Some(
+                    .ok_or(HttpResponseError::internal_error(
                         "Failed to get user roles",
-                    )))?
+                    ))?
                     .roles,
             ) {
-                return Err(HttpResponseError::unauthorized(Some("User not authorized")).into());
+                return Err(HttpResponseError::unauthorized("User not authorized").into());
             }
 
             Ok(KeycloakUserClaims {
@@ -73,8 +73,8 @@ where
                     .user_service
                     .find_by_external_id(&user_id, false)
                     .await
-                    .map_internal_error(Some("Failed to find user"))?
-                    .ok_or(HttpResponseError::unauthorized(Some("User not found")))?,
+                    .map_internal_error("Failed to find user")?
+                    .ok_or(HttpResponseError::unauthorized("User not found"))?,
                 _roles: std::marker::PhantomData,
             })
         })
@@ -92,19 +92,17 @@ impl FromRequest for JwtClientClaims {
     fn from_request(req: &actix_web::HttpRequest, _: &mut Payload) -> Self::Future {
         let req = req.clone();
         Box::pin(async move {
-            let data: &web::Data<AppState> =
-                req.app_data()
-                    .ok_or(HttpResponseError::internal_error(Some(
-                        "App data not found",
-                    )))?;
+            let data: &web::Data<AppState> = req
+                .app_data()
+                .ok_or(HttpResponseError::internal_error("App data not found"))?;
             let jwt = JwtMiddleware::from_request(&req, &mut Payload::None).await?;
 
             let client_id = data
                 .token_service
                 .find_by_id(&jwt.id, false)
                 .await
-                .map_internal_error(Some("Failed to find token by id"))?
-                .ok_or(HttpResponseError::unauthorized(Some("Token not found")))?
+                .map_internal_error("Failed to find token by id")?
+                .ok_or(HttpResponseError::unauthorized("Token not found"))?
                 .client_id;
 
             Ok(JwtClientClaims {
@@ -112,8 +110,8 @@ impl FromRequest for JwtClientClaims {
                     .client_service
                     .find_by_id(&client_id, false)
                     .await
-                    .map_internal_error(Some("Failed to find client"))?
-                    .ok_or(HttpResponseError::unauthorized(Some("Client not found")))?,
+                    .map_internal_error("Failed to find client")?
+                    .ok_or(HttpResponseError::unauthorized("Client not found"))?,
             })
         })
     }

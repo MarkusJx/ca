@@ -26,98 +26,86 @@ pub enum HttpResponseErrorCode {
 #[derive(Debug, Clone)]
 pub struct HttpResponseError {
     pub error: HttpResponseErrorCode,
-    pub message: Option<String>,
+    pub message: String,
 }
 
 impl HttpResponseError {
-    pub fn new(error: HttpResponseErrorCode, message: Option<String>) -> Self {
+    pub fn new(error: HttpResponseErrorCode, message: String) -> Self {
         Self { error, message }
     }
 
-    pub fn internal_error<T: Into<String>>(message: Option<T>) -> Self {
-        Self::new(
-            HttpResponseErrorCode::InternalError,
-            message.map(|m| m.into()),
-        )
+    pub fn internal_error<T: Into<String>>(message: T) -> Self {
+        Self::new(HttpResponseErrorCode::InternalError, message.into())
     }
 
-    pub fn bad_request<T: Into<String>>(message: Option<T>) -> Self {
-        Self::new(HttpResponseErrorCode::BadRequest, message.map(|m| m.into()))
+    pub fn bad_request<T: Into<String>>(message: T) -> Self {
+        Self::new(HttpResponseErrorCode::BadRequest, message.into())
     }
 
-    pub fn not_found<T: Into<String>>(message: Option<T>) -> Self {
-        Self::new(HttpResponseErrorCode::NotFound, message.map(|m| m.into()))
+    pub fn not_found<T: Into<String>>(message: T) -> Self {
+        Self::new(HttpResponseErrorCode::NotFound, message.into())
     }
 
-    pub fn unauthorized<T: Into<String>>(message: Option<T>) -> Self {
-        Self::new(
-            HttpResponseErrorCode::Unauthorized,
-            message.map(|m| m.into()),
-        )
+    pub fn unauthorized<T: Into<String>>(message: T) -> Self {
+        Self::new(HttpResponseErrorCode::Unauthorized, message.into())
     }
 
-    pub fn failed_dependency<T: Into<String>>(message: Option<T>) -> Self {
-        Self::new(
-            HttpResponseErrorCode::FailedDependency,
-            message.map(|m| m.into()),
-        )
+    pub fn failed_dependency<T: Into<String>>(message: T) -> Self {
+        Self::new(HttpResponseErrorCode::FailedDependency, message.into())
     }
 }
 
 impl Display for HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.message {
-            Some(message) => write!(f, "{}: {}", self.error, message),
-            None => write!(f, "{}", self.error),
-        }
+        write!(f, "{}: {}", self.error, self.message)
     }
 }
 
 pub trait MapHttpResponseError<T> {
-    fn map_internal_error(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+    fn map_internal_error(self, message: &str) -> Result<T, HttpResponseError>;
 
-    fn map_bad_request(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+    fn map_bad_request(self, message: &str) -> Result<T, HttpResponseError>;
 
-    fn map_not_found(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+    fn map_not_found(self, message: &str) -> Result<T, HttpResponseError>;
 
-    fn map_failed_dependency(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+    fn map_failed_dependency(self, message: &str) -> Result<T, HttpResponseError>;
 
-    fn map_unauthorized(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+    fn map_unauthorized(self, message: &str) -> Result<T, HttpResponseError>;
 }
 
 impl<T, E> MapHttpResponseError<T> for Result<T, E>
 where
     E: Display,
 {
-    fn map_internal_error(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+    fn map_internal_error(self, message: &str) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Internal server error: {}", e);
             HttpResponseError::internal_error(message).into()
         })
     }
 
-    fn map_bad_request(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+    fn map_bad_request(self, message: &str) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Bad request: {}", e);
             HttpResponseError::bad_request(message).into()
         })
     }
 
-    fn map_not_found(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+    fn map_not_found(self, message: &str) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Not found: {}", e);
             HttpResponseError::not_found(message).into()
         })
     }
 
-    fn map_failed_dependency(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+    fn map_failed_dependency(self, message: &str) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Failed dependency: {}", e);
             HttpResponseError::failed_dependency(message).into()
         })
     }
 
-    fn map_unauthorized(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+    fn map_unauthorized(self, message: &str) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             error!("Unauthorized: {}", e);
             HttpResponseError::unauthorized(message).into()
@@ -126,11 +114,11 @@ where
 }
 
 pub trait MapKeycloakError<T> {
-    fn map_keycloak_error(self, message: Option<&str>) -> Result<T, HttpResponseError>;
+    fn map_keycloak_error(self, message: &str) -> Result<T, HttpResponseError>;
 }
 
 impl<T> MapKeycloakError<T> for Result<T, KeycloakError> {
-    fn map_keycloak_error(self, message: Option<&str>) -> Result<T, HttpResponseError> {
+    fn map_keycloak_error(self, message: &str) -> Result<T, HttpResponseError> {
         self.map_err(|e| {
             match e {
                 KeycloakError::HttpFailure { status, body, text } => {

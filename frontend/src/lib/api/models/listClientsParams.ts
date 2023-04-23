@@ -11,5 +11,5 @@ export type ListClientsParams = {
  * Whether to include inactive clients in the result.
 Defaults to false.
  */
-	includeInactive?: boolean;
+	includeInactive?: boolean | null;
 };

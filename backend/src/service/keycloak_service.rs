@@ -33,9 +33,8 @@ struct KeycloakCertificates {
     pub keys: Option<Vec<KeycloakCertificate>>,
 }
 
-#[derive(Clone)]
-pub struct KeycloakService {
-    admin: Arc<KeycloakAdmin<KeycloakAdminTokenRetriever>>,
+pub struct KeycloakServiceImpl {
+    admin: KeycloakAdmin<KeycloakAdminTokenRetriever>,
     realm: String,
     client: Client,
     url: String,
@@ -71,8 +70,36 @@ impl KeycloakTokenSupplier for KeycloakAdminTokenRetriever {
     }
 }
 
-impl KeycloakService {
-    pub async fn new(config: &Config) -> BasicResult<Self> {
+#[async_trait]
+#[mockall::automock]
+pub trait KeycloakService: Send + Sync {
+    async fn init_realm(&self, user_service: &UserService) -> BasicResult<()>;
+
+    async fn get_server_info(&self) -> WebResult<ServerInfoRepresentation>;
+
+    async fn get_realm_public_key(&self) -> BasicResult<String>;
+
+    async fn get_users(&self, username: String, exact: bool) -> WebResult<Vec<UserRepresentation>>;
+
+    async fn create_user(&self, user: UserRepresentation) -> WebResult<()>;
+
+    async fn get_user_by_id(&self, id: &String) -> WebResult<UserRepresentation>;
+
+    async fn delete_user(&self, id: &String) -> WebResult<()>;
+
+    async fn get_client_by_name(&self, id: &str) -> WebResult<Vec<ClientRepresentation>>;
+
+    async fn create_client(&self, client: ClientRepresentation) -> WebResult<()>;
+
+    async fn add_roles_to_user(&self, user_id: &str, roles: Vec<String>) -> WebResult<()>;
+
+    async fn get_user_roles(&self, user_id: &str) -> WebResult<Vec<RoleRepresentation>>;
+
+    async fn get_roles(&self) -> WebResult<Vec<String>>;
+}
+
+impl KeycloakServiceImpl {
+    pub async fn new(config: &Config) -> BasicResult<Arc<Box<dyn KeycloakService>>> {
         let client = Client::new();
         let token = KeycloakAdminTokenRetriever::new(
             config.keycloak_url.clone(),
@@ -82,71 +109,14 @@ impl KeycloakService {
 
         let admin = KeycloakAdmin::new(&config.keycloak_url, token, client.clone());
 
-        Ok(Self {
-            admin: Arc::new(admin),
+        Ok(Arc::new(Box::new(Self {
+            admin,
             realm: config.keycloak_realm.clone(),
             client,
             url: config.keycloak_url.clone(),
             admin_name: config.admin_user.clone(),
             admin_password: config.admin_password.clone(),
-        })
-    }
-
-    pub async fn init_realm(&self, user_service: &UserService) -> BasicResult<()> {
-        if self.get_realm(self.realm.as_str()).await.is_err() {
-            debug!("Creating realm {}", self.realm);
-            self.create_realm(RealmRepresentation {
-                realm: Some(self.realm.clone()),
-                enabled: Some(true),
-                ..Default::default()
-            })
-            .await?;
-        }
-
-        if self
-            .get_client_by_name("ca-backend")
-            .await
-            .map_error_to_basic()?
-            .is_empty()
-        {
-            debug!("Creating client ca-backend");
-            self.create_client(ClientRepresentation {
-                client_id: Some("ca-backend".to_string()),
-                enabled: Some(true),
-                client_authenticator_type: Some("client-secret".to_string()),
-                redirect_uris: Some(vec!["http://localhost*".into()]),
-                web_origins: Some(vec!["*".into()]),
-                consent_required: Some(false),
-                standard_flow_enabled: Some(true),
-                implicit_flow_enabled: Some(true),
-                direct_access_grants_enabled: Some(true),
-                service_accounts_enabled: Some(false),
-                public_client: Some(true),
-                frontchannel_logout: Some(true),
-                protocol: Some("openid-connect".to_string()),
-                attributes: Some(
-                    [
-                        ("oidc.ciba.grant.enabled", "false"),
-                        ("post.logout.redirect.uris", "http://localhost*"),
-                        ("oauth2.device.authorization.grant.enabled", "true"),
-                        ("backchannel.logout.session.required", "true"),
-                        ("backchannel.logout.revoke.offline.tokens", "false"),
-                    ]
-                    .iter()
-                    .map(|(k, v)| (k.to_string(), v.to_string().into()))
-                    .collect(),
-                ),
-                ..Default::default()
-            })
-            .await
-            .map_error_to_basic()?;
-        }
-
-        if self.check_and_create_role("admin").await? {
-            self.create_admin_user(user_service).await?;
-        }
-
-        Ok(())
+        })))
     }
 
     async fn create_admin_user(&self, user_service: &UserService) -> BasicResult<()> {
@@ -228,14 +198,88 @@ impl KeycloakService {
         self.admin.post(realm).await.map_err(|e| e.into())
     }
 
-    pub async fn get_server_info(&self) -> WebResult<ServerInfoRepresentation> {
+    async fn get_role_by_name(&self, role_name: String) -> WebResult<RoleRepresentation> {
+        self.admin
+            .realm_roles_with_role_name_get(self.realm.as_str(), &role_name)
+            .await
+            .map_failed_dependency("Failed to find matching role in keycloak")
+    }
+
+    async fn create_role(&self, role: RoleRepresentation) -> WebResult<()> {
+        self.admin
+            .realm_roles_post(self.realm.as_str(), role)
+            .await
+            .map_failed_dependency("Failed to create the role in keycloak")
+    }
+}
+
+#[async_trait]
+impl KeycloakService for KeycloakServiceImpl {
+    async fn init_realm(&self, user_service: &UserService) -> BasicResult<()> {
+        if self.get_realm(self.realm.as_str()).await.is_err() {
+            debug!("Creating realm {}", self.realm);
+            self.create_realm(RealmRepresentation {
+                realm: Some(self.realm.clone()),
+                enabled: Some(true),
+                ..Default::default()
+            })
+            .await?;
+        }
+
+        if self
+            .get_client_by_name("ca-backend")
+            .await
+            .map_error_to_basic()?
+            .is_empty()
+        {
+            debug!("Creating client ca-backend");
+            self.create_client(ClientRepresentation {
+                client_id: Some("ca-backend".to_string()),
+                enabled: Some(true),
+                client_authenticator_type: Some("client-secret".to_string()),
+                redirect_uris: Some(vec!["http://localhost*".into()]),
+                web_origins: Some(vec!["*".into()]),
+                consent_required: Some(false),
+                standard_flow_enabled: Some(true),
+                implicit_flow_enabled: Some(true),
+                direct_access_grants_enabled: Some(true),
+                service_accounts_enabled: Some(false),
+                public_client: Some(true),
+                frontchannel_logout: Some(true),
+                protocol: Some("openid-connect".to_string()),
+                attributes: Some(
+                    [
+                        ("oidc.ciba.grant.enabled", "false"),
+                        ("post.logout.redirect.uris", "http://localhost*"),
+                        ("oauth2.device.authorization.grant.enabled", "true"),
+                        ("backchannel.logout.session.required", "true"),
+                        ("backchannel.logout.revoke.offline.tokens", "false"),
+                    ]
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string().into()))
+                    .collect(),
+                ),
+                ..Default::default()
+            })
+            .await
+            .map_error_to_basic()?;
+        }
+
+        if self.check_and_create_role("admin").await? {
+            self.create_admin_user(user_service).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn get_server_info(&self) -> WebResult<ServerInfoRepresentation> {
         self.admin
             .get()
             .await
-            .map_failed_dependency(Some("Failed to get server info"))
+            .map_failed_dependency("Failed to get server info")
     }
 
-    pub async fn get_realm_public_key(&self) -> BasicResult<String> {
+    async fn get_realm_public_key(&self) -> BasicResult<String> {
         debug!(
             "{:?}",
             self.client
@@ -296,11 +340,7 @@ impl KeycloakService {
         Ok(lines.join("\n"))
     }
 
-    pub async fn get_users(
-        &self,
-        username: String,
-        exact: bool,
-    ) -> WebResult<Vec<UserRepresentation>> {
+    async fn get_users(&self, username: String, exact: bool) -> WebResult<Vec<UserRepresentation>> {
         self.admin
             .realm_users_get(
                 self.realm.as_str(),
@@ -320,30 +360,30 @@ impl KeycloakService {
                 Some(username),
             )
             .await
-            .map_failed_dependency(Some("Failed to find matching users in keycloak"))
+            .map_failed_dependency("Failed to find matching users in keycloak")
     }
 
-    pub async fn create_user(&self, user: UserRepresentation) -> WebResult<()> {
+    async fn create_user(&self, user: UserRepresentation) -> WebResult<()> {
         self.admin
             .realm_users_post(self.realm.as_str(), user)
             .await
-            .map_failed_dependency(Some("Failed to create the user in keycloak"))
+            .map_failed_dependency("Failed to create the user in keycloak")
     }
 
-    pub async fn get_user_by_id(&self, id: &String) -> WebResult<UserRepresentation> {
+    async fn get_user_by_id(&self, id: &String) -> WebResult<UserRepresentation> {
         let mut user = self
             .admin
             .realm_users_with_id_get(self.realm.as_str(), id.as_str())
             .await
-            .map_keycloak_error(Some("Keycloak user not found"))?;
+            .map_keycloak_error("Keycloak user not found")?;
 
         if let Ok(roles) = self
             .get_user_roles(
                 user.id
                     .as_ref()
-                    .ok_or(HttpResponseError::failed_dependency(Some(
+                    .ok_or(HttpResponseError::failed_dependency(
                         "Failed to get user id",
-                    )))?,
+                    ))?,
             )
             .await
         {
@@ -359,14 +399,14 @@ impl KeycloakService {
         Ok(user)
     }
 
-    pub async fn delete_user(&self, id: &String) -> WebResult<()> {
+    async fn delete_user(&self, id: &String) -> WebResult<()> {
         self.admin
             .realm_users_with_id_delete(self.realm.as_str(), id.as_str())
             .await
-            .map_failed_dependency(Some("Failed to delete the user in keycloak"))
+            .map_failed_dependency("Failed to delete the user in keycloak")
     }
 
-    pub async fn get_client_by_name(&self, id: &str) -> WebResult<Vec<ClientRepresentation>> {
+    async fn get_client_by_name(&self, id: &str) -> WebResult<Vec<ClientRepresentation>> {
         self.admin
             .realm_clients_get(
                 self.realm.as_str(),
@@ -378,31 +418,17 @@ impl KeycloakService {
                 None,
             )
             .await
-            .map_failed_dependency(Some("Failed to find matching client in keycloak"))
+            .map_failed_dependency("Failed to find matching client in keycloak")
     }
 
-    pub async fn create_client(&self, client: ClientRepresentation) -> WebResult<()> {
+    async fn create_client(&self, client: ClientRepresentation) -> WebResult<()> {
         self.admin
             .realm_clients_post(self.realm.as_str(), client)
             .await
-            .map_failed_dependency(Some("Failed to create the client in keycloak"))
+            .map_failed_dependency("Failed to create the client in keycloak")
     }
 
-    async fn get_role_by_name(&self, role_name: String) -> WebResult<RoleRepresentation> {
-        self.admin
-            .realm_roles_with_role_name_get(self.realm.as_str(), &role_name)
-            .await
-            .map_failed_dependency(Some("Failed to find matching role in keycloak"))
-    }
-
-    async fn create_role(&self, role: RoleRepresentation) -> WebResult<()> {
-        self.admin
-            .realm_roles_post(self.realm.as_str(), role)
-            .await
-            .map_failed_dependency(Some("Failed to create the role in keycloak"))
-    }
-
-    pub async fn add_roles_to_user(&self, user_id: &str, roles: Vec<String>) -> WebResult<()> {
+    async fn add_roles_to_user(&self, user_id: &str, roles: Vec<String>) -> WebResult<()> {
         let roles = join_all(roles.into_iter().map(|role| self.get_role_by_name(role)))
             .await
             .into_iter()
@@ -411,26 +437,26 @@ impl KeycloakService {
         self.admin
             .realm_users_with_id_role_mappings_realm_post(self.realm.as_str(), user_id, roles)
             .await
-            .map_failed_dependency(Some("Failed to add role to user in keycloak"))
+            .map_failed_dependency("Failed to add role to user in keycloak")
     }
 
-    pub async fn get_user_roles(&self, user_id: &str) -> WebResult<Vec<RoleRepresentation>> {
+    async fn get_user_roles(&self, user_id: &str) -> WebResult<Vec<RoleRepresentation>> {
         self.admin
             .realm_users_with_id_role_mappings_realm_get(self.realm.as_str(), user_id)
             .await
-            .map_failed_dependency(Some("Failed to get user roles in keycloak"))
+            .map_failed_dependency("Failed to get user roles in keycloak")
     }
 
-    pub async fn get_roles(&self) -> WebResult<Vec<String>> {
+    async fn get_roles(&self) -> WebResult<Vec<String>> {
         self.admin
             .realm_roles_get(self.realm.as_str(), None, None, None, None)
             .await
-            .map_failed_dependency(Some("Failed to get roles in keycloak"))?
+            .map_failed_dependency("Failed to get roles in keycloak")?
             .into_iter()
             .map(|r| {
-                r.name.ok_or(HttpResponseError::failed_dependency(Some(
+                r.name.ok_or(HttpResponseError::failed_dependency(
                     "Failed to get role name",
-                )))
+                ))
             })
             .collect::<WebResult<Vec<_>>>()
     }

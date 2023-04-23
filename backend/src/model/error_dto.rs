@@ -24,7 +24,7 @@ impl From<HttpResponseError> for ErrorDto {
             code: error.status_code().as_u16(),
             error: error.error.to_string(),
             #[cfg(debug_assertions)]
-            message: error.message,
+            message: Some(error.message),
             #[cfg(not(debug_assertions))]
             message: None,
         }

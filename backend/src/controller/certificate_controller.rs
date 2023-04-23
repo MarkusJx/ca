@@ -65,13 +65,13 @@ async fn generate_intermediate(
     _claims: KeycloakUserClaims<AdminRole>,
 ) -> WebResult<Json<CACertificateDto>> {
     let root = data.root_certificate_service.find_active().await?.ok_or(
-        HttpResponseError::bad_request(Some("Root certificate does not exist")),
+        HttpResponseError::bad_request("Root certificate does not exist"),
     )?;
     let root = CACertificate::root_from_pem(&root.public, body.root_certificate.as_bytes())
-        .map_internal_error(Some("Failed to parse root certificate"))?;
+        .map_internal_error("Failed to parse root certificate")?;
 
     let intermediate = CACertificate::generate_intermediate(&data.config, &root)
-        .map_internal_error(Some("Failed to generate intermediate certificate"))?;
+        .map_internal_error("Failed to generate intermediate certificate")?;
 
     let model = data
         .certificate_service
@@ -79,17 +79,17 @@ async fn generate_intermediate(
             public: ActiveValue::set(
                 intermediate
                     .cert_as_pem()
-                    .map_internal_error(Some("Failed to get intermediate certificate"))?,
+                    .map_internal_error("Failed to get intermediate certificate")?,
             ),
             private: ActiveValue::set(Some(
                 intermediate
                     .key_pair_as_pem()
-                    .map_internal_error(Some("Failed to get intermediate key pair"))?,
+                    .map_internal_error("Failed to get intermediate key pair")?,
             )),
             valid_until: ActiveValue::set(
                 intermediate
                     .valid_until()
-                    .map_internal_error(Some("Failed to get intermediate certificate validity"))?,
+                    .map_internal_error("Failed to get intermediate certificate validity")?,
             ),
             ..Default::default()
         })
@@ -103,20 +103,21 @@ async fn sign_certificate(
     data: Data<AppState>,
     client_id: Uuid,
 ) -> WebResult<Json<SigningRequestDto>> {
-    let req = X509Req::from_pem(request.request.as_bytes()).map_internal_error(None)?;
+    let req = X509Req::from_pem(request.request.as_bytes())
+        .map_internal_error("Failed to parse csr string")?;
     let ca_cert: CACertificate = data
         .certificate_service
         .find_active()
         .await?
-        .ok_or(HttpResponseError::bad_request(Some(
+        .ok_or(HttpResponseError::bad_request(
             "No active CA certificate found",
-        )))?
+        ))?
         .try_into()
-        .map_internal_error(Some("Failed to map model"))?;
+        .map_internal_error("Failed to map model")?;
 
     let signed = ca_cert
         .sign_request(&req, &request.alternative_names, &data.config, false)
-        .map_internal_error(None)?;
+        .map_internal_error("Failed to sign csr")?;
 
     let req = data
         .signing_request_service
@@ -126,7 +127,7 @@ async fn sign_certificate(
             hash: ActiveValue::Set(
                 signed
                     .digest(MessageDigest::sha256())
-                    .map_internal_error(None)?
+                    .map_internal_error("Failed to hash signature")?
                     .to_vec()
                     .to_hex_string(":"),
             ),
@@ -135,21 +136,21 @@ async fn sign_certificate(
                     .subject_name()
                     .entries_by_nid(openssl::nid::Nid::COMMONNAME)
                     .next()
-                    .ok_or(HttpResponseError::bad_request(Some(
+                    .ok_or(HttpResponseError::bad_request(
                         "No common name in subject name",
-                    )))?
+                    ))?
                     .data()
                     .as_utf8()
-                    .map_internal_error(None)?
+                    .map_internal_error("Failed to convert asn1string to utf-8")?
                     .to_string(),
             ),
             serial_number: ActiveValue::Set(
                 signed
                     .serial_number()
                     .to_bn()
-                    .map_internal_error(None)?
+                    .map_internal_error("Failed to convert to bignum")?
                     .to_hex_str()
-                    .map_internal_error(None)?
+                    .map_internal_error("Failed to convert bignum to hex string")?
                     .to_string(),
             ),
             issued_at: ActiveValue::Set(chrono::Utc::now().into()),
@@ -158,12 +159,12 @@ async fn sign_certificate(
 
     let mut dto = SigningRequestDto::from_model(
         req.try_into_model()
-            .map_internal_error(Some("Failed to map model"))?,
+            .map_internal_error("Failed to map model")?,
     );
     dto.certificate = Some(
         signed
             .to_pem()
-            .map_internal_error(Some("Failed to stringify certificate"))?
+            .map_internal_error("Failed to stringify certificate")?
             .to_string(),
     );
     Ok(Json(dto))
@@ -198,8 +199,8 @@ async fn sign(
 
 #[utoipa::path(
     post,
-    tag = "Users",
-    context_path = "/api/v1",
+    tag = "Certificates",
+    context_path = "/api/v1/certificate",
     request_body = NewSigningRequestDto,
     operation_id = "userSignCertificate",
     responses(
@@ -213,7 +214,7 @@ async fn sign(
         ("oauth2" = [])
     )
 )]
-#[post("/user/sign", wrap = "keycloak_middleware::Keycloak")]
+#[post("/user-sign", wrap = "keycloak_middleware::Keycloak")]
 async fn user_sign(
     data: Data<AppState>,
     user: Json<NewSigningRequestDto>,
@@ -223,9 +224,7 @@ async fn user_sign(
         .client_service
         .find_user_client(&claims.user.id)
         .await?
-        .ok_or(HttpResponseError::bad_request(Some(
-            "No client found for user",
-        )))?;
+        .ok_or(HttpResponseError::bad_request("No client found for user"))?;
     sign_certificate(user, data, client.id).await
 }
 
@@ -276,10 +275,10 @@ async fn generate_root_certificate(
     claims: KeycloakUserClaims<AdminRole>,
 ) -> WebResult<Json<CACertificateDto>> {
     let root = CACertificate::generate_root(&data.config)
-        .map_internal_error(Some("Failed to generate root certificate"))?;
+        .map_internal_error("Failed to generate root certificate")?;
     let valid_until = root
         .valid_until()
-        .map_internal_error(Some("Failed to get valid until"))?;
+        .map_internal_error("Failed to get valid until")?;
 
     let model = data
         .root_certificate_service
@@ -287,7 +286,7 @@ async fn generate_root_certificate(
             valid_until: ActiveValue::Set(valid_until.clone()),
             public: ActiveValue::Set(
                 root.cert_as_pem()
-                    .map_internal_error(Some("Failed to get public key"))?,
+                    .map_internal_error("Failed to get public key")?,
             ),
             created_by: ActiveValue::Set(claims.user.id),
             ..Default::default()
@@ -298,7 +297,7 @@ async fn generate_root_certificate(
         model,
         Some(
             root.key_pair_as_pem()
-                .map_internal_error(Some("Failed to get key pair"))?,
+                .map_internal_error("Failed to get key pair")?,
         ),
     )))
 }
