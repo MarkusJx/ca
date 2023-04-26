@@ -102,6 +102,10 @@ pub fn create_user(id: &uuid::Uuid, name: &str) -> user::Model {
     }
 }
 
+pub fn create_now() -> DateTimeWithTimeZone {
+    chrono::Utc::now().into()
+}
+
 #[macro_export]
 macro_rules! module {
     ($module: expr) => {

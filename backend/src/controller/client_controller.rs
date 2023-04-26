@@ -46,7 +46,7 @@ async fn create_token(
         .map_bad_request("Invalid date supplied")?;
     if expiry_date < chrono::Utc::now() {
         return Err(HttpResponseError::bad_request(
-            "Expiry date must be in the future",
+            "The expiry date must be in the future",
         ));
     }
 
@@ -180,7 +180,9 @@ async fn regenerate_token(
         .await?;
 
     if client_entity.user_id != claims.user.id {
-        return Err(HttpResponseError::bad_request("Client not found"));
+        return Err(HttpResponseError::not_found(
+            "User is not the owner of the client",
+        ));
     }
 
     let (expiry_date, token_id, token, token_hash) = create_token(&client, &data).await?;
@@ -238,7 +240,7 @@ async fn by_id(
         .ok_or(HttpResponseError::not_found("Client not found"))?;
 
     if client.user_id != claims.user.id {
-        return Err(HttpResponseError::unauthorized(
+        return Err(HttpResponseError::not_found(
             "You are not authorized to access this client",
         ));
     }
@@ -338,7 +340,7 @@ async fn delete(
             "User client cannot be deleted",
         ));
     } else if client.user_id != claims.user.id {
-        return Err(HttpResponseError::bad_request("Client not found"));
+        return Err(HttpResponseError::not_found("This client does not belong to you"));
     }
 
     if query.delete_in_database.unwrap_or(false) {

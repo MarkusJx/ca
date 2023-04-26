@@ -405,10 +405,7 @@ async fn test_generate_root_cert() {
 
 #[actix_web::test]
 async fn test_generate_root_cert_insufficient_privileges() {
-    init_test!(
-        app,
-        scope!(certificate_controller::register())
-    );
+    init_test!(app, scope!(certificate_controller::register()));
 
     let req = TestRequest::post()
         .uri("/api/v1/certificate/root/generate")
