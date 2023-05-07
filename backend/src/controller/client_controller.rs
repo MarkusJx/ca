@@ -340,7 +340,9 @@ async fn delete(
             "User client cannot be deleted",
         ));
     } else if client.user_id != claims.user.id {
-        return Err(HttpResponseError::not_found("This client does not belong to you"));
+        return Err(HttpResponseError::not_found(
+            "This client does not belong to you",
+        ));
     }
 
     if query.delete_in_database.unwrap_or(false) {

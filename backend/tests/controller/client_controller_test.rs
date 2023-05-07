@@ -826,7 +826,7 @@ async fn test_delete() {
         }]])
         .append_exec_results([MockExecResult {
             rows_affected: 1,
-            last_insert_id: 1
+            last_insert_id: 1,
         }]);
 
     init_test!(
@@ -840,7 +840,10 @@ async fn test_delete() {
 
     let req = TestRequest::delete()
         .uri(&format!("/api/v1/client/{}", client_id))
-        .append_header(("Authorization", encode_keycloak_token(&user_id, "test", "test", &["user"])))
+        .append_header((
+            "Authorization",
+            encode_keycloak_token(&user_id, "test", "test", &["user"]),
+        ))
         .to_request();
     let res = call_service(&app, req).await;
 
@@ -879,7 +882,10 @@ async fn test_delete_not_found() {
 
     let req = TestRequest::delete()
         .uri(&format!("/api/v1/client/{}", client_id))
-        .append_header(("Authorization", encode_keycloak_token(&user_id, "test", "test", &["user"])))
+        .append_header((
+            "Authorization",
+            encode_keycloak_token(&user_id, "test", "test", &["user"]),
+        ))
         .to_request();
     let res = call_service(&app, req).await;
 
@@ -915,7 +921,10 @@ async fn test_delete_user_client() {
 
     let req = TestRequest::delete()
         .uri(&format!("/api/v1/client/{}", client_id))
-        .append_header(("Authorization", encode_keycloak_token(&user_id, "test", "test", &["user"])))
+        .append_header((
+            "Authorization",
+            encode_keycloak_token(&user_id, "test", "test", &["user"]),
+        ))
         .to_request();
     let res = call_service(&app, req).await;
 
@@ -955,7 +964,10 @@ async fn test_delete_no_access() {
 
     let req = TestRequest::delete()
         .uri(&format!("/api/v1/client/{}", client_id))
-        .append_header(("Authorization", encode_keycloak_token(&user_id, "test", "test", &["user"])))
+        .append_header((
+            "Authorization",
+            encode_keycloak_token(&user_id, "test", "test", &["user"]),
+        ))
         .to_request();
     let res = call_service(&app, req).await;
 
@@ -995,7 +1007,10 @@ async fn test_delete_inactive() {
 
     let req = TestRequest::delete()
         .uri(&format!("/api/v1/client/{}", client_id))
-        .append_header(("Authorization", encode_keycloak_token(&user_id, "test", "test", &["user"])))
+        .append_header((
+            "Authorization",
+            encode_keycloak_token(&user_id, "test", "test", &["user"]),
+        ))
         .to_request();
     let res = call_service(&app, req).await;
 
@@ -1027,7 +1042,7 @@ async fn test_delete_in_database() {
         .append_query_results([Vec::<token::Model>::new()])
         .append_exec_results([MockExecResult {
             rows_affected: 1,
-            last_insert_id: 1
+            last_insert_id: 1,
         }]);
 
     init_test!(
@@ -1040,8 +1055,14 @@ async fn test_delete_in_database() {
     );
 
     let req = TestRequest::delete()
-        .uri(&format!("/api/v1/client/{}?deleteInDatabase=true", client_id))
-        .append_header(("Authorization", encode_keycloak_token(&user_id, "test", "test", &["user"])))
+        .uri(&format!(
+            "/api/v1/client/{}?deleteInDatabase=true",
+            client_id
+        ))
+        .append_header((
+            "Authorization",
+            encode_keycloak_token(&user_id, "test", "test", &["user"]),
+        ))
         .to_request();
     let res = call_service(&app, req).await;
 
